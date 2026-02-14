@@ -1,5 +1,7 @@
 package com.example;
 
+import com.example.assignment.PermanentAssignment;
+import com.example.entity.AssignmentMetadata;
 import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.entity.User;
@@ -47,8 +49,18 @@ public class Main {
 
         System.out.println("\nUser create... ");
         User alice = new User("alice", "Alice Thymefield", "alice@example.com");
-        User bob = User.create("anton", "bob@company.com");
-        User charlie = User.create("charlie", "charlie@company.com");
+        User anton = new User("anton", "Anton Ivanov", "anton@example.com");
+        User zhu = new User("zhu", "Zhu Yuan", "zhu@example.com");
+
+        System.out.println(alice.format());
+        System.out.println(anton.format());
+        System.out.println(zhu.format());
+
+        System.out.println("\nPermanent assignment... ");
+        AssignmentMetadata meta1 = AssignmentMetadata.now("system", "Initial setup");
+        PermanentAssignment aliceAdmin = new PermanentAssignment(alice, adminRole, meta1);
+
+        System.out.println(aliceAdmin.summary());
     }
 
     private static void userValidationTest() {
