@@ -33,11 +33,11 @@ public class Role {
 
     private static void validateName(String name) {
         if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Имя роли не может быть null или пустым");
+            throw new IllegalArgumentException("Role name cannot be null or empty");
         }
         synchronized (usedNames) {
             if (usedNames.contains(name)) {
-                throw new IllegalArgumentException("Роль с именем '" + name + "' уже существует в системе");
+                throw new IllegalArgumentException("Role with name " + name + " already exists");
             }
             usedNames.add(name);
         }
