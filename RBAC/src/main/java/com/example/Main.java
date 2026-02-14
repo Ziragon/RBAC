@@ -92,6 +92,15 @@ public class Main {
         );
 
         System.out.println("\n" + zhuViewer.summary());
+
+        // продление роли
+        System.out.println("\nExtend check... ");
+        String newExpiration = LocalDateTime.now()
+                .plusDays(14)
+                .format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"));
+        zhuViewer.extend(newExpiration);
+
+        System.out.println("\n" + zhuViewer.summary());
     }
 
     private static void userValidationTest() {
