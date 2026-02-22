@@ -6,6 +6,8 @@ import com.example.entity.AssignmentMetadata;
 import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.entity.User;
+import com.example.filters.UserFilter;
+import com.example.filters.UserFilters;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -101,6 +103,20 @@ public class Main {
         zhuViewer.extend(newExpiration);
 
         System.out.println("\n" + zhuViewer.summary());
+
+        // проверка фильтра
+        System.out.println("\nFilters check... ");
+        UserFilter isAlice = UserFilters.byUsername("alice");
+        System.out.println("Is it Alice? " + isAlice.test(alice)); // true
+
+        UserFilter containsAn = UserFilters.byUsernameContains("AN");
+        System.out.println("Is `Anton` contains `AN`? " + containsAn.test(anton)); // true
+
+        UserFilter complexFilter = UserFilters.byUsernameContains("an")
+                .and(UserFilters.byEmailDomain("@example.com"));
+
+        System.out.println("Does Anton fit the filter? " + complexFilter.test(anton)); // true
+        System.out.println("Does Alice fit the filter? " + complexFilter.test(alice)); // false
     }
 
     private static void userValidationTest() {
