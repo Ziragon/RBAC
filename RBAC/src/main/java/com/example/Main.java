@@ -6,10 +6,7 @@ import com.example.entity.AssignmentMetadata;
 import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.entity.User;
-import com.example.filters.RoleFilter;
-import com.example.filters.RoleFilters;
-import com.example.filters.UserFilter;
-import com.example.filters.UserFilters;
+import com.example.filters.*;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -133,6 +130,14 @@ public class Main {
         if (complexSearch.test(adminRole)) {
             System.out.println("Admin role fits the filters. (Admin name && has permission WRITE users || dont have at least 5 perms)");
         }
+
+        // assignmentFilter
+        System.out.println("\nAssignment filter check... ");
+        AssignmentFilter monitorFilter = AssignmentFilters.activeOnly()
+                .and(AssignmentFilters.byType("TEMPORARY"))
+                .and(AssignmentFilters.expiringBefore("2026-12-31 23:59"));
+
+        System.out.println("Does AntonAssignment fit the filter? " + monitorFilter.test(antonModerator));
     }
 
     private static void userValidationTest() {
