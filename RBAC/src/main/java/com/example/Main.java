@@ -6,6 +6,8 @@ import com.example.entity.AssignmentMetadata;
 import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.entity.User;
+import com.example.filters.RoleFilter;
+import com.example.filters.RoleFilters;
 import com.example.filters.UserFilter;
 import com.example.filters.UserFilters;
 
@@ -104,8 +106,10 @@ public class Main {
 
         System.out.println("\n" + zhuViewer.summary());
 
-        // проверка фильтра
+        // проверка фильтров
+        // userFilter
         System.out.println("\nFilters check... ");
+        System.out.println("User filter check... ");
         UserFilter isAlice = UserFilters.byUsername("alice");
         System.out.println("Is it Alice? " + isAlice.test(alice)); // true
 
@@ -117,6 +121,18 @@ public class Main {
 
         System.out.println("Does Anton fit the filter? " + complexFilter.test(anton)); // true
         System.out.println("Does Alice fit the filter? " + complexFilter.test(alice)); // false
+
+        // roleFilter
+        System.out.println("\nRole filter check... ");
+        RoleFilter isAdmin = RoleFilters.byNameContains("Admin");
+        RoleFilter hasDbAccess = RoleFilters.hasPermission("WRITE", "users");
+        RoleFilter isPowerUser = RoleFilters.hasAtLeastNPermissions(5);
+
+        RoleFilter complexSearch = isAdmin.and(hasDbAccess).or(isPowerUser);
+
+        if (complexSearch.test(adminRole)) {
+            System.out.println("Admin role fits the filters. (Admin name && has permission WRITE users || dont have at least 5 perms)");
+        }
     }
 
     private static void userValidationTest() {
