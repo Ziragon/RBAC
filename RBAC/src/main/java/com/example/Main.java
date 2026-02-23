@@ -7,6 +7,8 @@ import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.entity.User;
 import com.example.filters.*;
+import com.example.repository.AssignmentManager;
+import com.example.repository.RoleManager;
 import com.example.repository.UserManager;
 
 import java.time.LocalDateTime;
@@ -68,9 +70,9 @@ public class Main {
         // постоянное назначение роли
         System.out.println("\nPermanent assignment... ");
         AssignmentMetadata meta1 = AssignmentMetadata.now("system", "Initial setup");
-        PermanentAssignment aliceAdmin = new PermanentAssignment(alice, adminRole, meta1);
+        PermanentAssignment aliceAdministrator = new PermanentAssignment(alice, adminRole, meta1);
 
-        System.out.println(aliceAdmin.summary());
+        System.out.println(aliceAdministrator.summary());
 
         // временное назначение роли
         System.out.println("\nTemporary assignment... ");
@@ -169,6 +171,36 @@ public class Main {
         userManager.findByUsername("anton").ifPresent(u ->
                 System.out.println("After update:  " + u.format())
         );
+
+        // role and assignment Managers
+        System.out.println("\nRole and Assignment Managers check... ");
+
+        AssignmentManager assignmentManager = new AssignmentManager();
+        RoleManager roleManager = new RoleManager(assignmentManager);
+
+        roleManager.add(adminRole);
+        roleManager.add(moderatorRole);
+
+        assignmentManager.add(aliceAdministrator);
+        assignmentManager.add(antonModerator);
+
+        System.out.println("Alice permissions count: " + assignmentManager.getUserPermissions(alice).size());
+        boolean canDelete = assignmentManager.userHasPermission(alice, "DELETE", "users");
+        System.out.println("Can Alice delete users? " + canDelete);
+
+        System.out.println("\nTesting Role Deletion Safety...");
+        try {
+            roleManager.remove(adminRole);
+        } catch (IllegalStateException e) {
+            System.out.println("Caught expected error: " + e.getMessage());
+        }
+
+        assignmentManager.remove(aliceAdministrator);
+        System.out.println("\nAssignment removed for Alice.");
+
+        if (roleManager.remove(adminRole)) {
+            System.out.println("Role 'Administrator' successfully removed after revoking assignments.");
+        }
     }
 
     private static void userValidationTest() {
