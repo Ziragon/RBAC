@@ -7,9 +7,11 @@ import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.entity.User;
 import com.example.filters.*;
+import com.example.repository.UserManager;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 import java.util.Set;
 
 public class Main {
@@ -138,6 +140,35 @@ public class Main {
                 .and(AssignmentFilters.expiringBefore("2026-12-31 23:59"));
 
         System.out.println("Does AntonAssignment fit the filter? " + monitorFilter.test(antonModerator));
+
+        // проверка репозиториев
+        // userManager
+        System.out.println("\nManagers check... ");
+        System.out.println("UserManager check... ");
+        UserManager userManager = new UserManager();
+
+        userManager.add(alice);
+        userManager.add(anton);
+        userManager.add(zhu);
+
+        userManager.findByUsername("zhu").ifPresent(u ->
+                System.out.println("Found by username 'zhu': " + u.fullname())
+        );
+
+        UserFilter exampleFilter = UserFilters.byEmailDomain("@example.com");
+        List<User> exampleUsers = userManager.findByFilter(exampleFilter);
+        System.out.println("Users with @example.com: " + exampleUsers.size());
+
+        System.out.println("\nTesting user update...");
+        userManager.findByUsername("anton").ifPresent(user ->
+                System.out.println("Before update: " + user.format())
+        );
+
+        userManager.update("anton", "Anton P. Ivanov", "anton_new@example.com");
+
+        userManager.findByUsername("anton").ifPresent(u ->
+                System.out.println("After update:  " + u.format())
+        );
     }
 
     private static void userValidationTest() {
