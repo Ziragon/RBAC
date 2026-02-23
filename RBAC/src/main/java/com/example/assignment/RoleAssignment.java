@@ -16,5 +16,9 @@ public interface RoleAssignment {
 
     boolean isActive();
 
+    void revoke();
+
+    boolean isRevoked();
+
     String assignmentType();
 }

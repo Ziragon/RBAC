@@ -13,10 +13,12 @@ public class PermanentAssignment extends AbstractRoleAssignment {
         this.revoked = false;
     }
 
+    @Override
     public void revoke() {
         this.revoked = true;
     }
 
+    @Override
     public boolean isRevoked() {
         return revoked;
     }
