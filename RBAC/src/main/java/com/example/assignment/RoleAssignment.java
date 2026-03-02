@@ -21,4 +21,6 @@ public interface RoleAssignment {
     boolean isRevoked();
 
     String assignmentType();
+
+    String summary();
 }

@@ -63,6 +63,7 @@ public abstract class AbstractRoleAssignment implements RoleAssignment {
         return Objects.hash(assignmentId);
     }
 
+    @Override
     public String summary() {
 
         return "[" + assignmentType() + "] " +
