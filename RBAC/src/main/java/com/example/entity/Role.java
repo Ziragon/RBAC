@@ -131,4 +131,16 @@ public class Role {
 
         return sb.toString().trim();
     }
+
+    public static void clearNameRegistry() {
+        synchronized (usedNames) {
+            usedNames.clear();
+        }
+    }
+
+    public static void unregisterName(String name) {
+        synchronized (usedNames) {
+            usedNames.remove(name);
+        }
+    }
 }
