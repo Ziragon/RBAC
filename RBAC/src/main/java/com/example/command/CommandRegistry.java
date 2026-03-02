@@ -33,6 +33,7 @@ public class CommandRegistry {
         registerAssignmentCommands();
         registerPermissionCommands();
         registerSystemCommands();
+        registerReportCommands();
     }
 
     // -- User Commands --
@@ -792,6 +793,70 @@ public class CommandRegistry {
                 assignments.forEach(a -> System.out.println("    - " + a.role().getName()));
             } else {
                 ConsoleHelper.printWarning("User DOES NOT have permission '" + permName + "' on '" + resource + "'");
+            }
+        });
+    }
+
+    // -- Report commands --
+    private void registerReportCommands() {
+
+        // report-users
+        parser.registerCommand("report-users", "User report with roles and permissions", (scanner, system) -> {
+            ConsoleHelper.printHeader("User Report");
+
+            String report = system.getReportGenerator().generateUserReport(
+                    system.getUserManager(), system.getAssignmentManager());
+            System.out.println(report);
+
+            if (ConsoleHelper.confirm(scanner, "Save to file?")) {
+                String filename = ConsoleHelper.promptNonEmpty(scanner, "Filename");
+                try {
+                    system.getReportGenerator().exportToFile(report, filename);
+                    system.log("REPORT_EXPORT", filename, "User report exported");
+                    ConsoleHelper.printSuccess("Report saved to " + filename);
+                } catch (Exception e) {
+                    ConsoleHelper.printError("Failed to save: " + e.getMessage());
+                }
+            }
+        });
+
+        // report-roles
+        parser.registerCommand("report-roles", "Role report with user counts", (scanner, system) -> {
+            ConsoleHelper.printHeader("Role Report");
+
+            String report = system.getReportGenerator().generateRoleReport(
+                    system.getRoleManager(), system.getAssignmentManager());
+            System.out.println(report);
+
+            if (ConsoleHelper.confirm(scanner, "Save to file?")) {
+                String filename = ConsoleHelper.promptNonEmpty(scanner, "Filename");
+                try {
+                    system.getReportGenerator().exportToFile(report, filename);
+                    system.log("REPORT_EXPORT", filename, "Role report exported");
+                    ConsoleHelper.printSuccess("Report saved to " + filename);
+                } catch (Exception e) {
+                    ConsoleHelper.printError("Failed to save: " + e.getMessage());
+                }
+            }
+        });
+
+        // report-matrix
+        parser.registerCommand("report-matrix", "Permission matrix (users × resources)", (scanner, system) -> {
+            ConsoleHelper.printHeader("Permission Matrix");
+
+            String report = system.getReportGenerator().generatePermissionMatrix(
+                    system.getUserManager(), system.getAssignmentManager());
+            System.out.println(report);
+
+            if (ConsoleHelper.confirm(scanner, "Save to file?")) {
+                String filename = ConsoleHelper.promptNonEmpty(scanner, "Filename");
+                try {
+                    system.getReportGenerator().exportToFile(report, filename);
+                    system.log("REPORT_EXPORT", filename, "Permission matrix exported");
+                    ConsoleHelper.printSuccess("Report saved to " + filename);
+                } catch (Exception e) {
+                    ConsoleHelper.printError("Failed to save: " + e.getMessage());
+                }
             }
         });
     }

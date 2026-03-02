@@ -7,6 +7,7 @@ import com.example.entity.AssignmentMetadata;
 import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.entity.User;
+import com.example.report.ReportGenerator;
 import com.example.repository.AssignmentManager;
 import com.example.repository.RoleManager;
 import com.example.repository.UserManager;
@@ -19,6 +20,7 @@ public class RBACSystem {
     private final RoleManager roleManager;
     private final AssignmentManager assignmentManager;
     private final AuditLog auditLog;
+    private final ReportGenerator reportGenerator;
 
     private String currentUser;
 
@@ -27,6 +29,7 @@ public class RBACSystem {
         this.roleManager = new RoleManager(assignmentManager);
         this.userManager = new UserManager();
         this.auditLog = new AuditLog();
+        this.reportGenerator = new ReportGenerator();
         this.currentUser = "system";
     }
 
@@ -44,6 +47,10 @@ public class RBACSystem {
 
     public AuditLog getAuditLog() {
         return auditLog;
+    }
+
+    public ReportGenerator getReportGenerator() {
+        return reportGenerator;
     }
 
     public String getCurrentUser() {
