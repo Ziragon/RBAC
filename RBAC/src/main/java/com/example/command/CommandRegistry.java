@@ -3,6 +3,7 @@ package com.example.command;
 import com.example.assignment.PermanentAssignment;
 import com.example.assignment.RoleAssignment;
 import com.example.assignment.TemporaryAssignment;
+import com.example.audit.AuditEntry;
 import com.example.entity.AssignmentMetadata;
 import com.example.entity.Permission;
 import com.example.entity.Role;
@@ -12,7 +13,6 @@ import com.example.filters.RoleFilters;
 import com.example.filters.UserFilters;
 import com.example.util.ConsoleHelper;
 
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -71,6 +71,7 @@ public class CommandRegistry {
             try {
                 User user = new User(username, fullName, email);
                 system.getUserManager().add(user);
+                system.log("USER_CREATE", username, "Created user: " + fullName);
                 ConsoleHelper.printSuccess("User '" + username + "' created successfully.");
             } catch (IllegalArgumentException e) {
                 ConsoleHelper.printError(e.getMessage());
@@ -132,6 +133,7 @@ public class CommandRegistry {
 
             try {
                 system.getUserManager().update(username, newFullName, newEmail);
+                system.log("USER_UPDATE", username, "Updated user, new full name: " + newFullName + ", new email: " + newEmail);
                 ConsoleHelper.printSuccess("User updated successfully.");
             } catch (Exception e) {
                 ConsoleHelper.printError(e.getMessage());
@@ -164,6 +166,7 @@ public class CommandRegistry {
             }
 
             system.getUserManager().remove(user);
+            system.log("USER_DELETE", username, "Deleted user with " + assignments.size() + " assignments");
             ConsoleHelper.printSuccess("User '" + username + "' deleted. " +
                     assignments.size() + " assignment(s) removed.");
         });
@@ -240,6 +243,7 @@ public class CommandRegistry {
             try {
                 Role role = Role.create(name, description, Set.of());
                 system.getRoleManager().add(role);
+                system.log("ROLE_CREATE", name, "Created role with description: " + description);
                 ConsoleHelper.printSuccess("Role '" + name + "' created.");
 
                 // Предлагаем добавить права
@@ -250,6 +254,7 @@ public class CommandRegistry {
 
                     try {
                         Permission perm = new Permission(permName, resource, permDesc);
+                        system.log("ROLE_MODIFY", name, "Added permission: " + permName + ":" + resource);
                         role.addPermission(perm);
                         ConsoleHelper.printSuccess("Permission added.");
                     } catch (IllegalArgumentException e) {
@@ -308,6 +313,7 @@ public class CommandRegistry {
 
             try {
                 system.getRoleManager().remove(role);
+                system.log("ROLE_DELETE", name, "Deleted role with " + assignments.size() + " assignments");
                 ConsoleHelper.printSuccess("Role '" + name + "' deleted.");
             } catch (IllegalStateException e) {
                 ConsoleHelper.printError(e.getMessage());
@@ -333,6 +339,7 @@ public class CommandRegistry {
             try {
                 Permission perm = new Permission(permName, resource, description);
                 roleOpt.get().addPermission(perm);
+                system.log("ROLE_MODIFY", roleName, "Added permission: " + permName + ":" + resource);
                 ConsoleHelper.printSuccess("Permission added to role '" + roleName + "'.");
             } catch (IllegalArgumentException e) {
                 ConsoleHelper.printError(e.getMessage());
@@ -367,6 +374,7 @@ public class CommandRegistry {
             int choice = ConsoleHelper.promptInt(scanner, "Select permission to remove", 1, permissions.size());
             Permission toRemove = permissions.get(choice - 1);
             role.removePermission(toRemove);
+            system.log("ROLE_MODIFY", roleName, "Removed permission: " + toRemove.name() + ":" + toRemove.resource());
             ConsoleHelper.printSuccess("Permission removed.");
         });
 
@@ -463,6 +471,7 @@ public class CommandRegistry {
                             user, role, metadata, expiration, autoRenew);
                     system.getAssignmentManager().add(assignment);
                 }
+                system.log("ROLE_ASSIGN", username, "Assigned role: " + role.getName());
                 ConsoleHelper.printSuccess("Role '" + role.getName() + "' assigned to '" + username + "'.");
             } catch (Exception e) {
                 ConsoleHelper.printError(e.getMessage());
@@ -498,6 +507,7 @@ public class CommandRegistry {
             int choice = ConsoleHelper.promptInt(scanner, "Select assignment to revoke", 1, assignments.size());
             RoleAssignment toRevoke = assignments.get(choice - 1);
             toRevoke.revoke();
+            system.log("ROLE_REVOKE", username, "Revoked role: " + toRevoke.role().getName());
             ConsoleHelper.printSuccess("Assignment revoked.");
         });
 
@@ -657,6 +667,7 @@ public class CommandRegistry {
 
             try {
                 toExtend.extend(newDate);
+                system.log("ASSIGN_EXTEND", username, "Extended to: " + toExtend.getExpiresAt());
                 ConsoleHelper.printSuccess("Assignment extended to " + newDate);
             } catch (Exception e) {
                 ConsoleHelper.printError(e.getMessage());
@@ -824,7 +835,75 @@ public class CommandRegistry {
             }
 
             system.setCurrentUser(username);
+            system.log("SWITCH_USER", username, "User switched");
             ConsoleHelper.printSuccess("Switched to user: " + username);
         });
+
+        parser.registerCommand("audit-log", "View audit log", (scanner, system) -> {
+            ConsoleHelper.printHeader("Audit Log");
+
+            int choice = ConsoleHelper.showMenu(scanner, "Select view",
+                    "All entries",
+                    "Recent entries",
+                    "By performer",
+                    "By action",
+                    "By target",
+                    "Save to file");
+
+            switch (choice) {
+                case 1 -> system.getAuditLog().printLog();
+                case 2 -> {
+                    int count = ConsoleHelper.promptInt(scanner, "Number of entries", 1, 100);
+                    var entries = system.getAuditLog().getRecent(count);
+                    printAuditEntries(entries);
+                }
+                case 3 -> {
+                    String performer = ConsoleHelper.promptNonEmpty(scanner, "Performer username");
+                    var entries = system.getAuditLog().getByPerformer(performer);
+                    printAuditEntries(entries);
+                }
+                case 4 -> {
+                    String action = ConsoleHelper.promptNonEmpty(scanner, "Action (e.g., USER_CREATE)");
+                    var entries = system.getAuditLog().getByAction(action);
+                    printAuditEntries(entries);
+                }
+                case 5 -> {
+                    String target = ConsoleHelper.promptNonEmpty(scanner, "Target");
+                    var entries = system.getAuditLog().getByTarget(target);
+                    printAuditEntries(entries);
+                }
+                case 6 -> {
+                    String filename = ConsoleHelper.promptNonEmpty(scanner, "Filename");
+                    try {
+                        system.getAuditLog().saveToFile(filename);
+                        ConsoleHelper.printSuccess("Audit log saved to " + filename);
+                    } catch (Exception e) {
+                        ConsoleHelper.printError("Failed to save: " + e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    private void printAuditEntries(List<AuditEntry> entries) {
+        if (entries.isEmpty()) {
+            ConsoleHelper.printInfo("No entries found.");
+            return;
+        }
+
+        System.out.printf("%n%-20s %-15s %-15s %-20s %s%n",
+                "TIMESTAMP", "ACTION", "PERFORMER", "TARGET", "DETAILS");
+        ConsoleHelper.printSeparator();
+
+        for (AuditEntry entry : entries) {
+            System.out.printf("%-20s %-15s %-15s %-20s %s%n",
+                    entry.timestamp(),
+                    entry.action(),
+                    entry.performer(),
+                    entry.target(),
+                    entry.details());
+        }
+
+        System.out.println("\nTotal: " + entries.size() + " entries");
     }
 }

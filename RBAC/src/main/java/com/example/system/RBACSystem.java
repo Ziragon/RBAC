@@ -2,6 +2,7 @@ package com.example.system;
 
 import com.example.assignment.PermanentAssignment;
 import com.example.assignment.RoleAssignment;
+import com.example.audit.AuditLog;
 import com.example.entity.AssignmentMetadata;
 import com.example.entity.Permission;
 import com.example.entity.Role;
@@ -17,6 +18,7 @@ public class RBACSystem {
     private final UserManager userManager;
     private final RoleManager roleManager;
     private final AssignmentManager assignmentManager;
+    private final AuditLog auditLog;
 
     private String currentUser;
 
@@ -24,6 +26,7 @@ public class RBACSystem {
         this.assignmentManager = new AssignmentManager();
         this.roleManager = new RoleManager(assignmentManager);
         this.userManager = new UserManager();
+        this.auditLog = new AuditLog();
         this.currentUser = "system";
     }
 
@@ -39,6 +42,10 @@ public class RBACSystem {
         return assignmentManager;
     }
 
+    public AuditLog getAuditLog() {
+        return auditLog;
+    }
+
     public String getCurrentUser() {
         return currentUser;
     }
@@ -47,12 +54,21 @@ public class RBACSystem {
         if (username == null || username.isBlank()) {
             throw new IllegalArgumentException("Username cannot be null or empty");
         }
+        String oldUser = this.currentUser;
         this.currentUser = username;
+        auditLog.log("SWITCH_USER", oldUser, username, "User switched");
+    }
+
+    // Действие от текущего пользователя
+    public void log(String action, String target, String details) {
+        auditLog.log(action, currentUser, target, details);
     }
 
     public void initialize() {
         createDefaultPermissionsAndRoles();
         createDefaultAdmin();
+
+        log("SYSTEM_INIT", "system", "System initialized with default data");
 
         System.out.println("System initialized successfully!");
         System.out.println(generateStatistics());
@@ -133,6 +149,7 @@ public class RBACSystem {
 
         sb.append(String.format("|  %-29s %24d  |%n", "Active Assignments:", activeAssignments));
         sb.append(String.format("|  %-29s %24d  |%n", "Expired Assignments:", expiredAssignments));
+        sb.append(String.format("|  %-29s %24d  |%n", "Audit Log Entries:", auditLog.count()));
 
         sb.append("+----------------------------------------------------------+\n");
 
@@ -175,6 +192,7 @@ public class RBACSystem {
         assignmentManager.clear();
         roleManager.clear();
         userManager.clear();
+        auditLog.clear();
         Role.clearNameRegistry();
         currentUser = "system";
     }
