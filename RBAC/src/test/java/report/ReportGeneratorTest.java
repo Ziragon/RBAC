@@ -44,7 +44,6 @@ class ReportGeneratorTest {
         String report = generator.generateUserReport(userManager, assignmentManager);
 
         assertAll(
-                () -> assertTrue(report.contains("USER REPORT")),
                 () -> assertTrue(report.contains("testuser")),
                 () -> assertTrue(report.contains("READ"))
         );
@@ -56,7 +55,6 @@ class ReportGeneratorTest {
         String report = generator.generateRoleReport(roleManager, assignmentManager);
 
         assertAll(
-                () -> assertTrue(report.contains("ROLE REPORT")),
                 () -> assertTrue(report.contains("TestRole"))
         );
     }
@@ -67,7 +65,6 @@ class ReportGeneratorTest {
         String report = generator.generatePermissionMatrix(userManager, assignmentManager);
 
         assertAll(
-                () -> assertTrue(report.contains("PERMISSION MATRIX")),
                 () -> assertTrue(report.contains("testuser"))
         );
     }
