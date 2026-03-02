@@ -35,6 +35,61 @@ public class ConsoleHelper {
         }
     }
 
+    // Запрос Username (Валидация)
+    public static String promptUsername(Scanner scanner, String message) {
+        while (true) {
+            String input = prompt(scanner, message);
+            if (ValidationUtils.isValidUsername(input)) {
+                return input;
+            }
+            printError("Invalid username. Use 3-20 characters: letters, digits, underscore.");
+        }
+    }
+
+    // Запрос Email (Валидация)
+    public static String promptEmail(Scanner scanner, String message) {
+        while (true) {
+            String input = prompt(scanner, message);
+            if (ValidationUtils.isValidEmail(input)) {
+                return input;
+            }
+            printError("Invalid email format.");
+        }
+    }
+
+    // Запрос даты (Валидация)
+    public static String promptDate(Scanner scanner, String message) {
+        while (true) {
+            String input = prompt(scanner, message + " (yyyy-MM-dd HH:mm)");
+            if (ValidationUtils.isValidDate(input)) {
+                return input;
+            }
+            printError("Invalid date format. Use: yyyy-MM-dd HH:mm");
+        }
+    }
+
+    // Запрос даты (Дата в будущем)
+    public static String promptFutureDate(Scanner scanner, String message) {
+        while (true) {
+            String input = prompt(scanner, message + " (yyyy-MM-dd HH:mm)");
+            if (ValidationUtils.isFutureDate(input)) {
+                return input;
+            }
+            printError("Date must be in the future. Format: yyyy-MM-dd HH:mm");
+        }
+    }
+
+    // Не пустая строка
+    public static String promptNonEmpty(Scanner scanner, String message) {
+        while (true) {
+            String input = prompt(scanner, message);
+            if (!input.isEmpty()) {
+                return input;
+            }
+            printError("Value cannot be empty.");
+        }
+    }
+
     // Методы для более удобного вывода
     // Хедер
     public static void printHeader(String title) {

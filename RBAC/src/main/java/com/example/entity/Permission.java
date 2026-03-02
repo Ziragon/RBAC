@@ -1,37 +1,20 @@
 package com.example.entity;
 
-import java.util.regex.Pattern;
+import com.example.util.ValidationUtils;
 
 public record Permission(
         String name,
         String resource,
         String description
 ) {
-    private static final Pattern NO_SPACES_PATTERN = Pattern.compile("^\\S+$");
 
     public Permission {
-        notNullValidation(name, resource, description);
-
-        if (!NO_SPACES_PATTERN.matcher(name).matches()) {
-            throw new IllegalArgumentException("Name cannot contain spaces");
-        }
+        ValidationUtils.requireNonEmpty(name, "Permission name");
+        ValidationUtils.requireNonEmpty(resource, "Resource");
+        ValidationUtils.requireNonEmpty(description, "Description");
 
         name = name.trim().toUpperCase();
         resource = resource.trim().toLowerCase();
-    }
-
-    private static void notNullValidation(String name, String resource, String description) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Name is empty");
-        }
-
-        if (resource == null || resource.isBlank()) {
-            throw new IllegalArgumentException("Resource is empty");
-        }
-
-        if (description == null || description.isBlank()) {
-            throw new IllegalArgumentException("Description is empty");
-        }
     }
 
     public String format() {
@@ -39,8 +22,8 @@ public record Permission(
     }
 
     public boolean matches(String namePattern, String resourcePattern) {
-        boolean nameMatches = namePattern == null || name.contains(namePattern);
-        boolean resourceMatches = resourcePattern == null || resource.contains(resourcePattern);
+        boolean nameMatches = namePattern == null || name.contains(namePattern.toUpperCase());
+        boolean resourceMatches = resourcePattern == null || resource.contains(resourcePattern.toLowerCase());
         return nameMatches && resourceMatches;
     }
 }

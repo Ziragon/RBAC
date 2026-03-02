@@ -3,6 +3,7 @@ package com.example.assignment;
 import com.example.entity.AssignmentMetadata;
 import com.example.entity.Role;
 import com.example.entity.User;
+import com.example.util.ValidationUtils;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -25,16 +26,7 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
     }
 
     private String validateDate(String date) {
-        if (date == null || date.isBlank()) {
-            throw new IllegalArgumentException("Expiration date cannot be null or empty");
-        }
-        try {
-            LocalDateTime.parse(date, DATE_FORMATTER);
-        } catch (Exception e) {
-            throw new IllegalArgumentException(
-                    "Invalid date format. Expected: yyyy-MM-dd HH:mm, got: " + date
-            );
-        }
+        ValidationUtils.validateDate(date);
         return date;
     }
 

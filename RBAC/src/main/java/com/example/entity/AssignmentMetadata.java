@@ -1,5 +1,7 @@
 package com.example.entity;
 
+import com.example.util.ValidationUtils;
+
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -12,22 +14,13 @@ public record AssignmentMetadata(
     private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
 
     public AssignmentMetadata {
-        notNullValidation(assignedBy, assignedAt);
+        ValidationUtils.requireNonEmpty(assignedBy, "Assigned by");
+        ValidationUtils.requireNonEmpty(assignedAt, "Assigned at");
     }
 
     public static AssignmentMetadata now(String assignedBy, String reason) {
         String currentTime = LocalDateTime.now().format(ISO_FORMATTER);
         return new AssignmentMetadata(assignedBy, currentTime, reason);
-    }
-
-    private static void notNullValidation(String assignedBy, String assignedAt) {
-        if (assignedBy == null || assignedBy.isBlank()) {
-            throw new IllegalArgumentException("AssignedBy is empty");
-        }
-
-        if (assignedAt == null || assignedAt.isBlank()) {
-            throw new IllegalArgumentException("AssignedAt is empty");
-        }
     }
 
     public String format() {
