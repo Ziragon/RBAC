@@ -66,7 +66,7 @@ public class CommandRegistry {
             ConsoleHelper.printHeader("Create User");
 
             String username = ConsoleHelper.promptUsername(scanner, "Username");
-            String fullName = ConsoleHelper.promptNonEmpty(scanner, "Full name");
+            String fullName = ConsoleHelper.promptString(scanner, "Full name", true);
             String email = ConsoleHelper.promptEmail(scanner, "Email");
 
             try {
@@ -129,7 +129,7 @@ public class CommandRegistry {
                 return;
             }
 
-            String newFullName = ConsoleHelper.promptNonEmpty(scanner, "New full name");
+            String newFullName = ConsoleHelper.promptString(scanner, "New full name", true);
             String newEmail = ConsoleHelper.promptEmail(scanner, "New email");
 
             try {
@@ -182,7 +182,7 @@ public class CommandRegistry {
                     "By email domain",
                     "By full name (contains)");
 
-            String query = ConsoleHelper.promptNonEmpty(scanner, "Enter search query");
+            String query = ConsoleHelper.promptString(scanner, "Enter search query", true);
             List<User> results;
 
             switch (choice) {
@@ -238,8 +238,8 @@ public class CommandRegistry {
         parser.registerCommand("role-create", "Create a new role", (scanner, system) -> {
             ConsoleHelper.printHeader("Create Role");
 
-            String name = ConsoleHelper.promptUsername(scanner, "Role name");
-            String description = ConsoleHelper.prompt(scanner, "Description");
+            String name = ConsoleHelper.promptString(scanner, "Role name", true);
+            String description = ConsoleHelper.promptString(scanner, "Description", false);
 
             try {
                 Role role = Role.create(name, description, Set.of());
@@ -249,9 +249,9 @@ public class CommandRegistry {
 
                 // Предлагаем добавить права
                 while (ConsoleHelper.confirm(scanner, "Add a permission?")) {
-                    String permName = ConsoleHelper.promptNonEmpty(scanner, "Permission name (e.g., READ)");
-                    String resource = ConsoleHelper.promptNonEmpty(scanner, "Resource (e.g., users)");
-                    String permDesc = ConsoleHelper.promptNonEmpty(scanner, "Permission description");
+                    String permName = ConsoleHelper.promptString(scanner, "Permission name (e.g., READ)", true);
+                    String resource = ConsoleHelper.promptString(scanner, "Resource (e.g., users)", true);
+                    String permDesc = ConsoleHelper.promptString(scanner, "Permission description", true);
 
                     try {
                         Permission perm = new Permission(permName, resource, permDesc);
@@ -272,7 +272,7 @@ public class CommandRegistry {
         parser.registerCommand("role-view", "View role details", (scanner, system) -> {
             ConsoleHelper.printHeader("Role Details");
 
-            String name = ConsoleHelper.promptNonEmpty(scanner, "Role name");
+            String name = ConsoleHelper.promptString(scanner, "Role name", true);
             Optional<Role> roleOpt = system.getRoleManager().findByName(name);
 
             if (roleOpt.isEmpty()) {
@@ -287,7 +287,7 @@ public class CommandRegistry {
         parser.registerCommand("role-delete", "Delete a role", (scanner, system) -> {
             ConsoleHelper.printHeader("Delete Role");
 
-            String name = ConsoleHelper.promptNonEmpty(scanner, "Role name to delete");
+            String name = ConsoleHelper.promptString(scanner, "Role name to delete", true);
             Optional<Role> roleOpt = system.getRoleManager().findByName(name);
 
             if (roleOpt.isEmpty()) {
@@ -325,7 +325,7 @@ public class CommandRegistry {
         parser.registerCommand("role-add-permission", "Add permission to role", (scanner, system) -> {
             ConsoleHelper.printHeader("Add Permission to Role");
 
-            String roleName = ConsoleHelper.promptNonEmpty(scanner, "Role name");
+            String roleName = ConsoleHelper.promptString(scanner, "Role name", true);
             Optional<Role> roleOpt = system.getRoleManager().findByName(roleName);
 
             if (roleOpt.isEmpty()) {
@@ -333,9 +333,9 @@ public class CommandRegistry {
                 return;
             }
 
-            String permName = ConsoleHelper.promptNonEmpty(scanner, "Permission name");
-            String resource = ConsoleHelper.promptNonEmpty(scanner, "Resource");
-            String description = ConsoleHelper.promptNonEmpty(scanner, "Description");
+            String permName = ConsoleHelper.promptString(scanner, "Permission name", true);
+            String resource = ConsoleHelper.promptString(scanner, "Resource", true);
+            String description = ConsoleHelper.promptString(scanner, "Description", true);
 
             try {
                 Permission perm = new Permission(permName, resource, description);
@@ -351,7 +351,7 @@ public class CommandRegistry {
         parser.registerCommand("role-remove-permission", "Remove permission from role", (scanner, system) -> {
             ConsoleHelper.printHeader("Remove Permission from Role");
 
-            String roleName = ConsoleHelper.promptNonEmpty(scanner, "Role name");
+            String roleName = ConsoleHelper.promptString(scanner, "Role name", true);
             Optional<Role> roleOpt = system.getRoleManager().findByName(roleName);
 
             if (roleOpt.isEmpty()) {
@@ -372,8 +372,7 @@ public class CommandRegistry {
                 System.out.println("  " + (i + 1) + ". " + permissions.get(i).format());
             }
 
-            int choice = ConsoleHelper.promptInt(scanner, "Select permission to remove", 1, permissions.size());
-            Permission toRemove = permissions.get(choice - 1);
+            Permission toRemove = ConsoleHelper.promptChoice(scanner, "Select permission to remove", permissions);
             role.removePermission(toRemove);
             system.log("ROLE_MODIFY", roleName, "Removed permission: " + toRemove.name() + ":" + toRemove.resource());
             ConsoleHelper.printSuccess("Permission removed.");
@@ -392,12 +391,12 @@ public class CommandRegistry {
 
             switch (choice) {
                 case 1 -> {
-                    String query = ConsoleHelper.promptNonEmpty(scanner, "Name contains");
+                    String query = ConsoleHelper.promptString(scanner, "Name contains", true);
                     results = system.getRoleManager().findByFilter(RoleFilters.byNameContains(query));
                 }
                 case 2 -> {
-                    String permName = ConsoleHelper.promptNonEmpty(scanner, "Permission name");
-                    String resource = ConsoleHelper.promptNonEmpty(scanner, "Resource");
+                    String permName = ConsoleHelper.promptString(scanner, "Permission name", true);
+                    String resource = ConsoleHelper.promptString(scanner, "Resource", true);
                     results = system.getRoleManager().findByFilter(RoleFilters.hasPermission(permName, resource));
                 }
                 case 3 -> {
@@ -428,7 +427,7 @@ public class CommandRegistry {
         parser.registerCommand("assign-role", "Assign role to user", (scanner, system) -> {
             ConsoleHelper.printHeader("Assign Role");
 
-            String username = ConsoleHelper.promptNonEmpty(scanner, "Username");
+            String username = ConsoleHelper.promptString(scanner, "Username", true);
             Optional<User> userOpt = system.getUserManager().findByUsername(username);
 
             if (userOpt.isEmpty()) {
@@ -445,19 +444,13 @@ public class CommandRegistry {
                 return;
             }
 
-            System.out.println("\nAvailable roles:");
-            for (int i = 0; i < roles.size(); i++) {
-                System.out.println("  " + (i + 1) + ". " + roles.get(i).getName());
-            }
-
-            int roleChoice = ConsoleHelper.promptInt(scanner, "Select role", 1, roles.size());
-            Role role = roles.get(roleChoice - 1);
+            Role role = ConsoleHelper.promptChoice(scanner, "Available roles", roles);
 
             int typeChoice = ConsoleHelper.showMenu(scanner, "Assignment type",
                     "Permanent",
                     "Temporary");
 
-            String reason = ConsoleHelper.prompt(scanner, "Reason for assignment");
+            String reason = ConsoleHelper.promptString(scanner, "Reason for assignment", false);
             AssignmentMetadata metadata = system.createMetadata(reason);
 
             try {
@@ -499,14 +492,13 @@ public class CommandRegistry {
                 return;
             }
 
-            System.out.println("\nActive assignments:");
-            for (int i = 0; i < assignments.size(); i++) {
-                RoleAssignment a = assignments.get(i);
-                System.out.println("  " + (i + 1) + ". " + a.role().getName() + " [" + a.assignmentType() + "]");
-            }
+            List<String> displayNames = assignments.stream()
+                    .map(a -> a.role().getName() + " [" + a.assignmentType() + "]")
+                    .toList();
 
-            int choice = ConsoleHelper.promptInt(scanner, "Select assignment to revoke", 1, assignments.size());
-            RoleAssignment toRevoke = assignments.get(choice - 1);
+            String chosen = ConsoleHelper.promptChoice(scanner, "Select assignment to revoke", displayNames);
+            int index = displayNames.indexOf(chosen);
+            RoleAssignment toRevoke = assignments.get(index);
             toRevoke.revoke();
             system.log("ROLE_REVOKE", username, "Revoked role: " + toRevoke.role().getName());
             ConsoleHelper.printSuccess("Assignment revoked.");
@@ -569,7 +561,7 @@ public class CommandRegistry {
         parser.registerCommand("assignment-list-role", "List users with role", (scanner, system) -> {
             ConsoleHelper.printHeader("Role Assignments");
 
-            String roleName = ConsoleHelper.promptNonEmpty(scanner, "Role name");
+            String roleName = ConsoleHelper.promptString(scanner, "Role name", true);
             Optional<Role> roleOpt = system.getRoleManager().findByName(roleName);
 
             if (roleOpt.isEmpty()) {
@@ -636,7 +628,7 @@ public class CommandRegistry {
         parser.registerCommand("assignment-extend", "Extend temporary assignment", (scanner, system) -> {
             ConsoleHelper.printHeader("Extend Assignment");
 
-            String username = ConsoleHelper.promptNonEmpty(scanner, "Username");
+            String username = ConsoleHelper.promptString(scanner, "Username", true);
             Optional<User> userOpt = system.getUserManager().findByUsername(username);
 
             if (userOpt.isEmpty()) {
@@ -654,15 +646,16 @@ public class CommandRegistry {
                 return;
             }
 
-            System.out.println("\nTemporary assignments:");
-            for (int i = 0; i < tempAssignments.size(); i++) {
-                TemporaryAssignment t = (TemporaryAssignment) tempAssignments.get(i);
-                System.out.println("  " + (i + 1) + ". " + t.role().getName() +
-                        " (expires: " + t.getExpiresAt() + ")");
-            }
+            List<String> displayNames = tempAssignments.stream()
+                    .map(a -> {
+                        TemporaryAssignment t = (TemporaryAssignment) a;
+                        return t.role().getName() + " (expires: " + t.getExpiresAt() + ")";
+                    })
+                    .toList();
 
-            int choice = ConsoleHelper.promptInt(scanner, "Select assignment", 1, tempAssignments.size());
-            TemporaryAssignment toExtend = (TemporaryAssignment) tempAssignments.get(choice - 1);
+            String chosen = ConsoleHelper.promptChoice(scanner, "Select assignment to extend", displayNames);
+            int index = displayNames.indexOf(chosen);
+            TemporaryAssignment toExtend = (TemporaryAssignment) tempAssignments.get(index);
 
             String newDate = ConsoleHelper.promptFutureDate(scanner, "New expiration date (yyyy-MM-dd HH:mm)");
 
@@ -690,17 +683,17 @@ public class CommandRegistry {
 
             switch (choice) {
                 case 1 -> {
-                    String username = ConsoleHelper.promptNonEmpty(scanner, "Username");
+                    String username = ConsoleHelper.promptUsername(scanner, "Username");
                     results = system.getAssignmentManager()
                             .findByFilter(AssignmentFilters.byUsername(username));
                 }
                 case 2 -> {
-                    String roleName = ConsoleHelper.promptNonEmpty(scanner, "Role name");
+                    String roleName = ConsoleHelper.promptString(scanner, "Role name", true);
                     results = system.getAssignmentManager()
                             .findByFilter(AssignmentFilters.byRoleName(roleName));
                 }
                 case 3 -> {
-                    String type = ConsoleHelper.promptNonEmpty(scanner, "Type (PERMANENT/TEMPORARY)");
+                    String type = ConsoleHelper.promptString(scanner, "Type (PERMANENT/TEMPORARY)", true);
                     results = system.getAssignmentManager()
                             .findByFilter(AssignmentFilters.byType(type));
                 }
@@ -774,8 +767,8 @@ public class CommandRegistry {
                 return;
             }
 
-            String permName = ConsoleHelper.promptNonEmpty(scanner, "Permission name");
-            String resource = ConsoleHelper.promptNonEmpty(scanner, "Resource");
+            String permName = ConsoleHelper.promptString(scanner, "Permission name", true);
+            String resource = ConsoleHelper.promptString(scanner, "Resource", true);
 
             boolean hasPermission = system.getAssignmentManager()
                     .userHasPermission(userOpt.get(), permName, resource);
@@ -809,7 +802,7 @@ public class CommandRegistry {
             System.out.println(report);
 
             if (ConsoleHelper.confirm(scanner, "Save to file?")) {
-                String filename = ConsoleHelper.promptNonEmpty(scanner, "Filename");
+                String filename = ConsoleHelper.promptString(scanner, "Filename", true);
                 try {
                     system.getReportGenerator().exportToFile(report, filename);
                     system.log("REPORT_EXPORT", filename, "User report exported");
@@ -829,7 +822,7 @@ public class CommandRegistry {
             System.out.println(report);
 
             if (ConsoleHelper.confirm(scanner, "Save to file?")) {
-                String filename = ConsoleHelper.promptNonEmpty(scanner, "Filename");
+                String filename = ConsoleHelper.promptString(scanner, "Filename", true);
                 try {
                     system.getReportGenerator().exportToFile(report, filename);
                     system.log("REPORT_EXPORT", filename, "Role report exported");
@@ -849,7 +842,7 @@ public class CommandRegistry {
             System.out.println(report);
 
             if (ConsoleHelper.confirm(scanner, "Save to file?")) {
-                String filename = ConsoleHelper.promptNonEmpty(scanner, "Filename");
+                String filename = ConsoleHelper.promptString(scanner, "Filename", true);
                 try {
                     system.getReportGenerator().exportToFile(report, filename);
                     system.log("REPORT_EXPORT", filename, "Permission matrix exported");
@@ -923,22 +916,22 @@ public class CommandRegistry {
                     printAuditEntries(entries);
                 }
                 case 3 -> {
-                    String performer = ConsoleHelper.promptNonEmpty(scanner, "Performer username");
+                    String performer = ConsoleHelper.promptString(scanner, "Performer username", true);
                     var entries = system.getAuditLog().getByPerformer(performer);
                     printAuditEntries(entries);
                 }
                 case 4 -> {
-                    String action = ConsoleHelper.promptNonEmpty(scanner, "Action (e.g., USER_CREATE)");
+                    String action = ConsoleHelper.promptString(scanner, "Action (e.g., USER_CREATE)", true);
                     var entries = system.getAuditLog().getByAction(action);
                     printAuditEntries(entries);
                 }
                 case 5 -> {
-                    String target = ConsoleHelper.promptNonEmpty(scanner, "Target");
+                    String target = ConsoleHelper.promptString(scanner, "Target", true);
                     var entries = system.getAuditLog().getByTarget(target);
                     printAuditEntries(entries);
                 }
                 case 6 -> {
-                    String filename = ConsoleHelper.promptNonEmpty(scanner, "Filename");
+                    String filename = ConsoleHelper.promptString(scanner, "Filename", true);
                     try {
                         system.getAuditLog().saveToFile(filename);
                         ConsoleHelper.printSuccess("Audit log saved to " + filename);

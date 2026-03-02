@@ -1,5 +1,6 @@
 package com.example.util;
 
+import java.util.List;
 import java.util.Scanner;
 
 // Вспомогательный класс с упрощающими методами
@@ -7,7 +8,7 @@ import java.util.Scanner;
 public class ConsoleHelper {
 
     // Запрос строки у пользователя
-    public static String prompt(Scanner scanner, String message) {
+    private static String prompt(Scanner scanner, String message) {
         System.out.print(message + ": ");
         return scanner.nextLine().trim();
     }
@@ -80,7 +81,7 @@ public class ConsoleHelper {
     }
 
     // Не пустая строка
-    public static String promptNonEmpty(Scanner scanner, String message) {
+    private static String promptNonEmpty(Scanner scanner, String message) {
         while (true) {
             String input = prompt(scanner, message);
             if (!input.isEmpty()) {
@@ -88,6 +89,30 @@ public class ConsoleHelper {
             }
             printError("Value cannot be empty.");
         }
+    }
+
+    // Запрос строки
+    // required = true - запрашивает до ненулевой строки
+    public static String promptString(Scanner scanner, String message, boolean required) {
+        if (required) {
+            return promptNonEmpty(scanner, message);
+        }
+        return prompt(scanner, message);
+    }
+
+    // Выбор элемента из списка
+    public static <T> T promptChoice(Scanner scanner, String message, List<T> options) {
+        if (options == null || options.isEmpty()) {
+            throw new IllegalArgumentException("Options list cannot be empty");
+        }
+
+        System.out.println("\n" + message + ":");
+        for (int i = 0; i < options.size(); i++) {
+            System.out.println("  " + (i + 1) + ". " + options.get(i));
+        }
+
+        int choice = promptInt(scanner, "Select option", 1, options.size());
+        return options.get(choice - 1);
     }
 
     // Методы для более удобного вывода
