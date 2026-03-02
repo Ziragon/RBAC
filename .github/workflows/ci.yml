@@ -1,0 +1,28 @@
+name: Java CI
+
+on:
+  push:
+    branches: [ "dev" ]
+  pull_request:
+    branches: [ "dev" ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Клонируем репозиторий
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      # 2. Устанавливаем JDK 25
+      - name: Set up JDK 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: '25'
+          cache: 'maven'
+
+      # 3. Собираем проект и запускаем тесты
+      - name: Build and test with Maven
+        run: mvn -B clean verify
