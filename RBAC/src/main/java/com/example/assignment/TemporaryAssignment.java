@@ -3,6 +3,7 @@ package com.example.assignment;
 import com.example.entity.AssignmentMetadata;
 import com.example.entity.Role;
 import com.example.entity.User;
+import com.example.util.DateUtils;
 import com.example.util.ValidationUtils;
 
 import java.time.LocalDateTime;
@@ -10,9 +11,6 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 
 public class TemporaryAssignment extends AbstractRoleAssignment {
-
-    private static final DateTimeFormatter DATE_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private String expiresAt;
     private boolean autoRenew;
@@ -31,12 +29,7 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
     }
 
     public boolean isExpired() {
-        return isExpired(LocalDateTime.now());
-    }
-
-    public boolean isExpired(LocalDateTime currentDate) {
-        LocalDateTime expiration = LocalDateTime.parse(expiresAt, DATE_FORMATTER);
-        return currentDate.isAfter(expiration);
+        return DateUtils.isPast(expiresAt);
     }
 
     @Override
@@ -64,24 +57,8 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
     }
 
     public String getTimeRemaining() {
-        if (isExpired()) {
-            return "Expired";
-        }
-
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime expiration = LocalDateTime.parse(expiresAt, DATE_FORMATTER);
-
-        long days = ChronoUnit.DAYS.between(now, expiration);
-        long hours = ChronoUnit.HOURS.between(now, expiration) % 24;
-        long minutes = ChronoUnit.MINUTES.between(now, expiration) % 60;
-
-        if (days > 0) {
-            return String.format("%d days, %d hours, %d minutes", days, hours, minutes);
-        } else if (hours > 0) {
-            return String.format("%d hours, %d minutes", hours, minutes);
-        } else {
-            return String.format("%d minutes", minutes);
-        }
+        if (isExpired()) return "Expired";
+        return DateUtils.formatRelativeTime(expiresAt);
     }
 
     public String getExpiresAt() {

@@ -1,9 +1,7 @@
 package com.example.entity;
 
+import com.example.util.DateUtils;
 import com.example.util.ValidationUtils;
-
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public record AssignmentMetadata(
         String assignedBy,
@@ -11,15 +9,13 @@ public record AssignmentMetadata(
         String reason
 ) {
 
-    private static final DateTimeFormatter ISO_FORMATTER = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-
     public AssignmentMetadata {
         ValidationUtils.requireNonEmpty(assignedBy, "Assigned by");
         ValidationUtils.requireNonEmpty(assignedAt, "Assigned at");
     }
 
     public static AssignmentMetadata now(String assignedBy, String reason) {
-        String currentTime = LocalDateTime.now().format(ISO_FORMATTER);
+        String currentTime = DateUtils.getCurrentDateTime();
         return new AssignmentMetadata(assignedBy, currentTime, reason);
     }
 

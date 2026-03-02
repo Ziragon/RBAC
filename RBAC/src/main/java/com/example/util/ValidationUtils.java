@@ -1,7 +1,5 @@
 package com.example.util;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.regex.Pattern;
 
 public class ValidationUtils {
@@ -10,9 +8,6 @@ public class ValidationUtils {
     private static final Pattern EMAIL_PATTERN = Pattern.compile("^[\\w.-]+@[\\w.-]+\\.[a-zA-Z]{2,}$");
     private static final Pattern PERMISSION_NAME_PATTERN = Pattern.compile("^[A-Z_]{2,20}$");
     private static final Pattern RESOURCE_PATTERN = Pattern.compile("^[a-z_]{2,30}$");
-
-    private static final DateTimeFormatter DATE_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm");
 
     private ValidationUtils() { }
 
@@ -31,23 +26,18 @@ public class ValidationUtils {
     }
 
     public static boolean isValidDate(String date) {
-        if (date == null || date.isBlank()) {
-            return false;
-        }
+        if (date == null || date.isBlank()) return false;
         try {
-            LocalDateTime.parse(date.trim(), DATE_FORMATTER);
+            DateUtils.isFuture(date);
             return true;
-        } catch (Exception e) {
+        } catch (IllegalArgumentException e) {
             return false;
         }
     }
 
     public static boolean isFutureDate(String date) {
-        if (!isValidDate(date)) {
-            return false;
-        }
-        LocalDateTime parsed = LocalDateTime.parse(date.trim(), DATE_FORMATTER);
-        return parsed.isAfter(LocalDateTime.now());
+        if (!isValidDate(date)) return false;
+        return DateUtils.isFuture(date);
     }
 
     public static boolean isValidPermissionName(String name) {
