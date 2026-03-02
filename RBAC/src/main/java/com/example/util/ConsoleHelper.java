@@ -118,7 +118,7 @@ public class ConsoleHelper {
     // Методы для более удобного вывода
     // Хедер
     public static void printHeader(String title) {
-        System.out.println("\n=== " + title.toUpperCase() + " ===\n");
+        System.out.println(FormatUtils.formatHeader(title));
     }
 
     // Success

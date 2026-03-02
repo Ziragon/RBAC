@@ -12,6 +12,7 @@ import com.example.filters.AssignmentFilters;
 import com.example.filters.RoleFilters;
 import com.example.filters.UserFilters;
 import com.example.util.ConsoleHelper;
+import com.example.util.FormatUtils;
 
 import java.util.List;
 import java.util.Optional;
@@ -50,15 +51,13 @@ public class CommandRegistry {
                 return;
             }
 
-            System.out.printf("%-15s %-25s %-30s%n", "USERNAME", "FULL NAME", "EMAIL");
-            ConsoleHelper.printSeparator();
+            String[] headers = {"Username", "Full Name", "Email"};
+            List<String[]> rows = users.stream()
+                    .map(u -> new String[]{u.username(), u.fullname(), u.email()})
+                    .toList();
 
-            for (User user : users) {
-                System.out.printf("%-15s %-25s %-30s%n",
-                        user.username(), user.fullname(), user.email());
-            }
-
-            System.out.println("\nTotal: " + users.size() + " user(s)");
+            System.out.println(FormatUtils.formatTable(headers, rows));
+            System.out.println("Total: " + users.size() + " user(s)");
         });
 
         // user-create
@@ -223,15 +222,17 @@ public class CommandRegistry {
                 return;
             }
 
-            System.out.printf("%-20s %-15s %-30s%n", "NAME", "PERMISSIONS", "ID");
-            ConsoleHelper.printSeparator();
+            String[] headers = {"Name", "Permissions", "ID"};
+            List<String[]> rows = roles.stream()
+                    .map(r -> new String[]{
+                            r.getName(),
+                            String.valueOf(r.getPermissions().size()),
+                            FormatUtils.truncate(r.getId(), 25)
+                    })
+                    .toList();
 
-            for (Role role : roles) {
-                System.out.printf("%-20s %-15d %-30s%n",
-                        role.getName(), role.getPermissions().size(), role.getId());
-            }
-
-            System.out.println("\nTotal: " + roles.size() + " role(s)");
+            System.out.println(FormatUtils.formatTable(headers, rows));
+            System.out.println("Total: " + roles.size() + " role(s)");
         });
 
         // role-create
@@ -507,7 +508,6 @@ public class CommandRegistry {
         // assignment-list
         parser.registerCommand("assignment-list", "List all assignments", (scanner, system) -> {
             ConsoleHelper.printHeader("All Assignments");
-
             List<RoleAssignment> assignments = system.getAssignmentManager().findAll();
 
             if (assignments.isEmpty()) {
@@ -515,21 +515,19 @@ public class CommandRegistry {
                 return;
             }
 
-            System.out.printf("%-15s %-20s %-12s %-10s %-20s%n",
-                    "USER", "ROLE", "TYPE", "STATUS", "ASSIGNED AT");
-            ConsoleHelper.printSeparator();
+            String[] headers = {"User", "Role", "Type", "Status", "Assigned At"};
+            List<String[]> rows = assignments.stream()
+                    .map(a -> new String[]{
+                            a.user().username(),
+                            a.role().getName(),
+                            a.assignmentType(),
+                            a.isActive() ? "ACTIVE" : "INACTIVE",
+                            a.metadata().assignedAt().substring(0, 16)
+                    })
+                    .toList();
 
-            for (RoleAssignment a : assignments) {
-                String status = a.isActive() ? "ACTIVE" : "INACTIVE";
-                System.out.printf("%-15s %-20s %-12s %-10s %-20s%n",
-                        a.user().username(),
-                        a.role().getName(),
-                        a.assignmentType(),
-                        status,
-                        a.metadata().assignedAt().substring(0, 16));
-            }
-
-            System.out.println("\nTotal: " + assignments.size() + " assignment(s)");
+            System.out.println(FormatUtils.formatTable(headers, rows));
+            System.out.println("Total: " + assignments.size() + " assignment(s)");
         });
 
         // assignment-list-user
