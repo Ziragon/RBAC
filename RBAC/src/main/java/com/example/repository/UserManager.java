@@ -3,20 +3,19 @@ package com.example.repository;
 import com.example.entity.User;
 import com.example.filters.UserFilter;
 import java.util.*;
-import java.util.stream.Collectors;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class UserManager implements Repository<User> {
-    private final Map<String, User> users = new HashMap<>();
+    private final Map<String, User> users = new ConcurrentHashMap<>();
 
     @Override
     public void add(User item) {
         if (item == null) {
             throw new IllegalArgumentException("User cannot be null");
         }
-        if (exists(item.username())) {
+        if (users.putIfAbsent(item.username(), item) != null) {
             throw new IllegalArgumentException("User with username " + item.username() + " already exists");
         }
-        users.put(item.username(), item);
     }
 
     @Override
@@ -63,24 +62,24 @@ public class UserManager implements Repository<User> {
 
     // record неизменяем, создаем новую сущность
     public void update(String username, String newFullName, String newEmail) {
-        if (!exists(username)) {
+        User updatedUser = new User(username, newFullName, newEmail);
+
+        if (users.replace(username, updatedUser) == null) {
             throw new NoSuchElementException("User not found: " + username);
         }
-        User updatedUser = new User(username, newFullName, newEmail);
-        users.put(username, updatedUser);
     }
 
     public List<User> findByFilter(UserFilter filter) {
         return users.values().stream()
                 .filter(filter::test)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<User> findAll(UserFilter filter, Comparator<User> sorter) {
         return users.values().stream()
                 .filter(filter::test)
                 .sorted(sorter)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override

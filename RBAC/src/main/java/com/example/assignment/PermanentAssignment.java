@@ -6,7 +6,7 @@ import com.example.entity.User;
 
 public class PermanentAssignment extends AbstractRoleAssignment {
 
-    private boolean revoked;
+    private volatile boolean revoked;
 
     public PermanentAssignment(User user, Role role, AssignmentMetadata metadata) {
         super(user, role, metadata);

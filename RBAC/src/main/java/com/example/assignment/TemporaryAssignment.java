@@ -6,15 +6,11 @@ import com.example.entity.User;
 import com.example.util.DateUtils;
 import com.example.util.ValidationUtils;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-
 public class TemporaryAssignment extends AbstractRoleAssignment {
 
-    private String expiresAt;
-    private boolean autoRenew;
-    private boolean revoked;
+    private volatile String expiresAt;
+    private volatile boolean autoRenew;
+    private volatile boolean revoked;
 
     public TemporaryAssignment(User user, Role role, AssignmentMetadata metadata,
                                String expiresAt, boolean autoRenew) {
@@ -34,7 +30,7 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
 
     @Override
     public boolean isActive() {
-        return !isExpired() || !isRevoked();
+        return !isExpired() && !isRevoked();
     }
 
     @Override

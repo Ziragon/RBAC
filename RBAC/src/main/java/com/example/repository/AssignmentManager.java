@@ -8,13 +8,14 @@ import com.example.entity.Role;
 import com.example.entity.User;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 public class AssignmentManager implements Repository<RoleAssignment> {
-    private final Map<String, RoleAssignment> assignments = new HashMap<>();
+    private final Map<String, RoleAssignment> assignments = new ConcurrentHashMap<>();
 
     @Override
-    public void add(RoleAssignment item) {
+    public synchronized void add(RoleAssignment item) {
         if (item == null) throw new IllegalArgumentException("Assignment cannot be null");
 
         if (userHasRole(item.user(), item.role())) {
@@ -70,7 +71,7 @@ public class AssignmentManager implements Repository<RoleAssignment> {
 
     public List<RoleAssignment> getExpiredAssignments() {
         return assignments.values().stream()
-                .filter(a -> a instanceof TemporaryAssignment && ((TemporaryAssignment) a).isExpired())
+                .filter(a -> a instanceof TemporaryAssignment temp && temp.isExpired())
                 .toList();
     }
 

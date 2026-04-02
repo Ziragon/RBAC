@@ -1,10 +1,11 @@
 package com.example.entity;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Role {
 
-    private static final Set<String> usedNames = new HashSet<>();
+    private static final Set<String> usedNames = ConcurrentHashMap.newKeySet();
 
     private final String id;
 
@@ -18,7 +19,11 @@ public class Role {
         this.id = id;
         this.name = name;
         this.description = description;
-        this.permissions = new HashSet<>(permissions);
+
+        this.permissions = ConcurrentHashMap.newKeySet();
+        if (permissions != null) {
+            this.permissions.addAll(permissions);
+        }
     }
 
     public static Role create(String name, String description, Set<Permission> permissions) {
@@ -35,11 +40,8 @@ public class Role {
         if (name == null || name.trim().isEmpty()) {
             throw new IllegalArgumentException("Role name cannot be null or empty");
         }
-        synchronized (usedNames) {
-            if (usedNames.contains(name)) {
-                throw new IllegalArgumentException("Role with name " + name + " already exists");
-            }
-            usedNames.add(name);
+        if (!usedNames.add(name)) {
+            throw new IllegalArgumentException("Role with name " + name + " already exists");
         }
     }
 
@@ -103,44 +105,31 @@ public class Role {
 
     public String format() {
         StringBuilder sb = new StringBuilder();
+        sb.append("Role: ").append(name).append(" [ID: ").append(id).append("]\n");
+        sb.append("Description: ").append(description.isEmpty() ? "No description" : description).append("\n");
 
-        sb.append("Role: ").append(name)
-                .append(" [ID: ").append(id).append("]\n");
+        List<Permission> sortedPermissions = permissions.stream()
+                .sorted(Comparator.comparing(Permission::name).thenComparing(Permission::resource))
+                .toList();
 
-        sb.append("Description: ")
-                .append(description.isEmpty() ? "No description" : description)
-                .append("\n");
+        sb.append("Permissions (").append(sortedPermissions.size()).append("):\n");
 
-        sb.append("Permissions (").append(permissions.size()).append("):\n");
-
-        if (permissions.isEmpty()) {
+        if (sortedPermissions.isEmpty()) {
             sb.append(" (none)\n");
         } else {
-            permissions.stream()
-                    .sorted(Comparator
-                            .comparing(Permission::name)
-                            .thenComparing(Permission::resource))
-                    .forEach(p -> sb.append(" - ")
-                            .append(p.name())
-                            .append(" on ")
-                            .append(p.resource())
-                            .append(": ")
-                            .append(p.description())
-                            .append("\n"));
+            sortedPermissions.forEach(p -> sb.append(" - ")
+                    .append(p.name()).append(" on ").append(p.resource())
+                    .append(": ").append(p.description()).append("\n"));
         }
 
         return sb.toString().trim();
     }
 
     public static void clearNameRegistry() {
-        synchronized (usedNames) {
-            usedNames.clear();
-        }
+        usedNames.clear();
     }
 
     public static void unregisterName(String name) {
-        synchronized (usedNames) {
-            usedNames.remove(name);
-        }
+        usedNames.remove(name);
     }
 }
