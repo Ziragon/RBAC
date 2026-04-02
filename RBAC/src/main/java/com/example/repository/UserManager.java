@@ -69,14 +69,14 @@ public class UserManager implements Repository<User> {
         }
     }
 
-    public List<User> findByFilter(UserFilter filter) {
-        return users.values().stream()
+    public List<User> findByFilterParallel(UserFilter filter) {
+        return users.values().parallelStream()
                 .filter(filter::test)
                 .toList();
     }
 
-    public List<User> findAll(UserFilter filter, Comparator<User> sorter) {
-        return users.values().stream()
+    public List<User> findAllParallel(UserFilter filter, Comparator<User> sorter) {
+        return users.values().parallelStream()
                 .filter(filter::test)
                 .sorted(sorter)
                 .toList();

@@ -92,7 +92,7 @@ class ManagerTest {
             userManager.add(alice);
             userManager.add(anton);
 
-            var result = userManager.findByFilter(UserFilters.byEmailDomain("@example.com"));
+            var result = userManager.findByFilterParallel(UserFilters.byEmailDomain("@example.com"));
 
             assertEquals(2, result.size());
         }

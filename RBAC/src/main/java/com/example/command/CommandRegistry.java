@@ -186,13 +186,13 @@ public class CommandRegistry {
 
             switch (choice) {
                 case 1 -> results = system.getUserManager()
-                        .findByFilter(UserFilters.byUsernameContains(query));
+                        .findByFilterParallel(UserFilters.byUsernameContains(query));
                 case 2 -> results = system.getUserManager()
-                        .findByFilter(u -> u.email().toLowerCase().contains(query.toLowerCase()));
+                        .findByFilterParallel(u -> u.email().toLowerCase().contains(query.toLowerCase()));
                 case 3 -> results = system.getUserManager()
-                        .findByFilter(UserFilters.byEmailDomain(query));
+                        .findByFilterParallel(UserFilters.byEmailDomain(query));
                 case 4 -> results = system.getUserManager()
-                        .findByFilter(UserFilters.byFullNameContains(query));
+                        .findByFilterParallel(UserFilters.byFullNameContains(query));
                 default -> {
                     ConsoleHelper.printError("Invalid option");
                     return;
@@ -393,16 +393,16 @@ public class CommandRegistry {
             switch (choice) {
                 case 1 -> {
                     String query = ConsoleHelper.promptString(scanner, "Name contains", true);
-                    results = system.getRoleManager().findByFilter(RoleFilters.byNameContains(query));
+                    results = system.getRoleManager().findByFilterParallel(RoleFilters.byNameContains(query));
                 }
                 case 2 -> {
                     String permName = ConsoleHelper.promptString(scanner, "Permission name", true);
                     String resource = ConsoleHelper.promptString(scanner, "Resource", true);
-                    results = system.getRoleManager().findByFilter(RoleFilters.hasPermission(permName, resource));
+                    results = system.getRoleManager().findByFilterParallel(RoleFilters.hasPermission(permName, resource));
                 }
                 case 3 -> {
                     int min = ConsoleHelper.promptInt(scanner, "Minimum permissions", 1, 100);
-                    results = system.getRoleManager().findByFilter(RoleFilters.hasAtLeastNPermissions(min));
+                    results = system.getRoleManager().findByFilterParallel(RoleFilters.hasAtLeastNPermissions(min));
                 }
                 default -> {
                     ConsoleHelper.printError("Invalid option");
@@ -683,22 +683,22 @@ public class CommandRegistry {
                 case 1 -> {
                     String username = ConsoleHelper.promptUsername(scanner, "Username");
                     results = system.getAssignmentManager()
-                            .findByFilter(AssignmentFilters.byUsername(username));
+                            .findByFilterParallel(AssignmentFilters.byUsername(username));
                 }
                 case 2 -> {
                     String roleName = ConsoleHelper.promptString(scanner, "Role name", true);
                     results = system.getAssignmentManager()
-                            .findByFilter(AssignmentFilters.byRoleName(roleName));
+                            .findByFilterParallel(AssignmentFilters.byRoleName(roleName));
                 }
                 case 3 -> {
                     String type = ConsoleHelper.promptString(scanner, "Type (PERMANENT/TEMPORARY)", true);
                     results = system.getAssignmentManager()
-                            .findByFilter(AssignmentFilters.byType(type));
+                            .findByFilterParallel(AssignmentFilters.byType(type));
                 }
                 case 4 -> results = system.getAssignmentManager()
-                        .findByFilter(AssignmentFilters.activeOnly());
+                        .findByFilterParallel(AssignmentFilters.activeOnly());
                 case 5 -> results = system.getAssignmentManager()
-                        .findByFilter(AssignmentFilters.inactiveOnly());
+                        .findByFilterParallel(AssignmentFilters.inactiveOnly());
                 default -> {
                     ConsoleHelper.printError("Invalid option");
                     return;
