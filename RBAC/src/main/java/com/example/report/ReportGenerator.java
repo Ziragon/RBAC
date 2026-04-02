@@ -17,195 +17,165 @@ import java.util.stream.Collectors;
 public class ReportGenerator {
 
     public String generateUserReport(UserManager userManager, AssignmentManager assignmentManager) {
-        StringBuilder sb = new StringBuilder();
-
         List<User> users = userManager.findAll();
+        if (users.isEmpty()) return "No users in the system.\n";
 
-        if (users.isEmpty()) {
-            sb.append("No users in the system.\n");
-            return sb.toString();
-        }
+        String usersData = users.parallelStream()
+                .map(user -> formatUserEntry(user, assignmentManager))
+                .collect(Collectors.joining("\n"));
 
-        sb.append(String.format("Total users: %d%n%n", users.size()));
+        return String.format("Total users: %d%n%n%s", users.size(), usersData);
+    }
 
-        for (User user : users) {
-            sb.append(String.format("User: %s (%s) <%s>%n",
-                    user.username(), user.fullname(), user.email()));
+    private String formatUserEntry(User user, AssignmentManager assignmentManager) {
+        StringBuilder sb = new StringBuilder();
+        sb.append(String.format("User: %s (%s) <%s>%n", user.username(), user.fullname(), user.email()));
 
-            List<RoleAssignment> assignments = assignmentManager.findByUser(user);
-            long activeCount = assignments.stream().filter(RoleAssignment::isActive).count();
+        List<RoleAssignment> assignments = assignmentManager.findByUser(user);
+        long activeCount = assignments.stream().filter(RoleAssignment::isActive).count();
+        sb.append(String.format("  Assignments: %d total, %d active%n", assignments.size(), activeCount));
 
-            sb.append(String.format("  Assignments: %d total, %d active%n",
-                    assignments.size(), activeCount));
-
-            if (!assignments.isEmpty()) {
-                sb.append("  Roles:\n");
-                for (RoleAssignment a : assignments) {
-                    String status = a.isActive() ? "ACTIVE" : "INACTIVE";
-                    sb.append(String.format("    - %-20s [%-10s] %s%n",
-                            a.role().getName(), a.assignmentType(), status));
-                }
-            }
-
-            Set<Permission> permissions = assignmentManager.getUserPermissions(user);
-            if (!permissions.isEmpty()) {
-                sb.append("  Permissions:\n");
-
-                var grouped = permissions.stream()
-                        .collect(Collectors.groupingBy(Permission::resource));
-
-                for (var entry : grouped.entrySet()) {
-                    String actions = entry.getValue().stream()
-                            .map(Permission::name)
-                            .collect(Collectors.joining(", "));
-                    sb.append(String.format("    [%s]: %s%n", entry.getKey(), actions));
-                }
-            }
-
-            sb.append("\n");
-        }
+        appendRoleDetails(sb, assignments);
+        appendPermissionDetails(sb, assignmentManager.getUserPermissions(user));
 
         return sb.toString();
     }
 
     public String generateRoleReport(RoleManager roleManager, AssignmentManager assignmentManager) {
-        StringBuilder sb = new StringBuilder();
-
         List<Role> roles = roleManager.findAll();
+        if (roles.isEmpty()) return "No roles in the system.\n";
 
-        if (roles.isEmpty()) {
-            sb.append("No roles in the system.\n");
-            return sb.toString();
-        }
-
+        StringBuilder sb = new StringBuilder();
         sb.append(String.format("Total roles: %d%n%n", roles.size()));
 
-        // Таблица ролей
-        sb.append(String.format("%-20s %-12s %-12s %-15s%n",
-                "ROLE", "USERS", "ACTIVE", "PERMISSIONS"));
-        sb.append("-".repeat(60)).append("\n");
+        sb.append(String.format("%-20s %-12s %-12s %-15s%n", "ROLE", "USERS", "ACTIVE", "PERMISSIONS"));
+        sb.repeat("-",60).append("\n");
 
-        for (Role role : roles) {
+        roles.forEach(role -> {
             List<RoleAssignment> assignments = assignmentManager.findByRole(role);
             long activeUsers = assignments.stream().filter(RoleAssignment::isActive).count();
-
             sb.append(String.format("%-20s %-12d %-12d %-15d%n",
-                    role.getName(),
-                    assignments.size(),
-                    activeUsers,
-                    role.getPermissions().size()));
-        }
+                    role.getName(), assignments.size(), activeUsers, role.getPermissions().size()));
+        });
 
-        // Детали по каждой роли
         sb.append("\n--- Details ---\n\n");
-
-        for (Role role : roles) {
-            sb.append(String.format("Role: %s%n", role.getName()));
-            sb.append(String.format("  Description: %s%n", role.getDescription()));
-            sb.append("  Permissions:\n");
-
-            if (role.getPermissions().isEmpty()) {
-                sb.append("    (none)\n");
-            } else {
-                for (Permission p : role.getPermissions()) {
-                    sb.append(String.format("    - %s on %s%n", p.name(), p.resource()));
-                }
-            }
-
-            List<RoleAssignment> assignments = assignmentManager.findByRole(role);
-            sb.append("  Assigned to:\n");
-
-            if (assignments.isEmpty()) {
-                sb.append("    (no users)\n");
-            } else {
-                for (RoleAssignment a : assignments) {
-                    String status = a.isActive() ? "ACTIVE" : "INACTIVE";
-                    sb.append(String.format("    - %s [%s]%n", a.user().username(), status));
-                }
-            }
-
-            sb.append("\n");
-        }
+        roles.forEach(role -> appendRoleDetailBlock(sb, role, assignmentManager));
 
         return sb.toString();
     }
 
     public String generatePermissionMatrix(UserManager userManager, AssignmentManager assignmentManager) {
-        StringBuilder sb = new StringBuilder();
-
         List<User> users = userManager.findAll();
+        if (users.isEmpty()) return "No users in the system.\n";
 
-        if (users.isEmpty()) {
-            sb.append("No users in the system.\n");
-            return sb.toString();
-        }
+        List<String> columns = getAllPermissionColumns(users, assignmentManager);
+        if (columns.isEmpty()) return "No permissions assigned to any user.\n";
 
-        Set<String> allResources = new TreeSet<>();
-        Set<String> allActions = new TreeSet<>();
-
-        for (User user : users) {
-            Set<Permission> perms = assignmentManager.getUserPermissions(user);
-            for (Permission p : perms) {
-                allResources.add(p.resource());
-                allActions.add(p.name());
-            }
-        }
-
-        if (allResources.isEmpty()) {
-            sb.append("No permissions assigned to any user.\n");
-            return sb.toString();
-        }
-
-        List<String> columns = new ArrayList<>();
-        for (String resource : allResources) {
-            for (String action : allActions) {
-                columns.add(action + ":" + resource);
-            }
-        }
-
+        StringBuilder sb = new StringBuilder();
         int userColWidth = 15;
         int permColWidth = 8;
 
+        // Формирование заголовка (Исправлено форматирование)
         sb.append(String.format("%-" + userColWidth + "s", "USER"));
-        for (String col : columns) {
-            String shortCol = abbreviate(col, permColWidth);
-            sb.append(String.format(" %-" + permColWidth + "s", shortCol));
-        }
-        sb.append("\n");
-        sb.append("-".repeat(userColWidth + columns.size() * (permColWidth + 1))).append("\n");
+        columns.forEach(col -> sb.append(String.format(" %-" + permColWidth + "s", abbreviate(col, permColWidth))));
+        sb.append("\n").repeat("-",userColWidth + columns.size() * (permColWidth + 1)).append("\n");
 
-        for (User user : users) {
-            Set<Permission> userPerms = assignmentManager.getUserPermissions(user);
+        // Параллельная генерация строк матрицы
+        String matrixBody = users.parallelStream()
+                .map(user -> formatMatrixRow(user, columns, assignmentManager, userColWidth, permColWidth))
+                .collect(Collectors.joining("\n"));
 
-            sb.append(String.format("%-" + userColWidth + "s", truncate(user.username(), userColWidth)));
-
-            for (String col : columns) {
-                String[] parts = col.split(":", 2);
-                String action = parts[0];
-                String resource = parts[1];
-
-                boolean hasPermission = userPerms.stream()
-                        .anyMatch(p -> p.name().equals(action) && p.resource().equals(resource));
-
-                String marker = hasPermission ? "  +" : "  -";
-                sb.append(String.format(" %-" + permColWidth + "s", marker));
-            }
-            sb.append("\n");
-        }
-
-        sb.append("\nLegend: + = has permission, - = no permission\n");
-
-        sb.append("\n--- Resource Summary ---\n\n");
-
-        for (String resource : allResources) {
-            long usersWithAccess = users.stream()
-                    .filter(u -> assignmentManager.getUserPermissions(u).stream()
-                            .anyMatch(p -> p.resource().equals(resource)))
-                    .count();
-            sb.append(String.format("  [%s]: %d user(s) have access%n", resource, usersWithAccess));
-        }
+        sb.append(matrixBody).append("\n\nLegend: + = has permission, - = no permission\n");
+        appendResourceSummary(sb, users, assignmentManager);
 
         return sb.toString();
+    }
+
+    private String formatMatrixRow(User user, List<String> columns, AssignmentManager am, int uWidth, int pWidth) {
+        StringBuilder row = new StringBuilder();
+        row.append(String.format("%-" + uWidth + "s", truncate(user.username(), uWidth)));
+
+        Set<Permission> userPerms = am.getUserPermissions(user);
+        for (String col : columns) {
+            String[] parts = col.split(":", 2);
+            boolean has = userPerms.stream().anyMatch(p -> p.matches(parts[0], parts[1]));
+            row.append(String.format(" %-" + pWidth + "s", has ? "  +" : "  -"));
+        }
+        return row.toString();
+    }
+
+    private List<String> getAllPermissionColumns(List<User> users, AssignmentManager am) {
+        Set<String> resources = new TreeSet<>();
+        Set<String> actions = new TreeSet<>();
+
+        users.forEach(user -> am.getUserPermissions(user).forEach(p -> {
+            resources.add(p.resource());
+            actions.add(p.name());
+        }));
+
+        List<String> cols = new ArrayList<>();
+        for (String res : resources) {
+            for (String act : actions) {
+                cols.add(act + ":" + res);
+            }
+        }
+        return cols;
+    }
+
+    private void appendRoleDetails(StringBuilder sb, List<RoleAssignment> assignments) {
+        if (assignments.isEmpty()) return;
+        sb.append("  Roles:\n");
+        for (RoleAssignment a : assignments) {
+            sb.append(String.format("    - %-20s [%-10s] %s%n",
+                    a.role().getName(), a.assignmentType(), a.isActive() ? "ACTIVE" : "INACTIVE"));
+        }
+    }
+
+    private void appendPermissionDetails(StringBuilder sb, Set<Permission> permissions) {
+        if (permissions.isEmpty()) return;
+        sb.append("  Permissions:\n");
+        permissions.stream()
+                .collect(Collectors.groupingBy(Permission::resource))
+                .forEach((resource, perms) -> {
+                    String actions = perms.stream().map(Permission::name).collect(Collectors.joining(", "));
+                    sb.append(String.format("    [%s]: %s%n", resource, actions));
+                });
+    }
+
+    private void appendRoleDetailBlock(StringBuilder sb, Role role, AssignmentManager am) {
+        sb.append(String.format("Role: %s%n  Description: %s%n  Permissions:%n",
+                role.getName(), role.getDescription()));
+
+        if (role.getPermissions().isEmpty()) {
+            sb.append("    (none)\n");
+        } else {
+            role.getPermissions().forEach(p -> sb.append(String.format("    - %s on %s%n", p.name(), p.resource())));
+        }
+
+        List<RoleAssignment> assignments = am.findByRole(role);
+        sb.append("  Assigned to:\n");
+        if (assignments.isEmpty()) {
+            sb.append("    (no users)\n");
+        } else {
+            assignments.forEach(a -> sb.append(String.format("    - %s [%s]%n",
+                    a.user().username(), a.isActive() ? "ACTIVE" : "INACTIVE")));
+        }
+        sb.append("\n");
+    }
+
+    private void appendResourceSummary(StringBuilder sb, List<User> users, AssignmentManager am) {
+        sb.append("--- Resource Summary ---\n\n");
+        Set<String> allResources = users.stream()
+                .flatMap(u -> am.getUserPermissions(u).stream())
+                .map(Permission::resource)
+                .collect(Collectors.toCollection(TreeSet::new));
+
+        for (String resource : allResources) {
+            long count = users.stream()
+                    .filter(u -> am.getUserPermissions(u).stream().anyMatch(p -> p.resource().equals(resource)))
+                    .count();
+            sb.append(String.format("  [%s]: %d user(s) have access%n", resource, count));
+        }
     }
 
     public void exportToFile(String report, String filename) throws IOException {
