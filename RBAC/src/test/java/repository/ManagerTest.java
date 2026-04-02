@@ -18,6 +18,10 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Set;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -92,6 +96,36 @@ class ManagerTest {
 
             assertEquals(2, result.size());
         }
+
+        @Test
+        @DisplayName("Concurrency: Multiple threads adding same user")
+        void shouldHandleConcurrentUserAdditions() throws InterruptedException {
+            int threads = 50;
+            var successCount = new AtomicInteger(0);
+            var latch = new CountDownLatch(1);
+
+            try (var service = Executors.newFixedThreadPool(threads)) {
+                for (int i = 0; i < threads; i++) {
+                    service.execute(() -> {
+                        try {
+                            latch.await();
+                            userManager.add(new User("concurrent_user", "Test", "test@test.com"));
+                            successCount.incrementAndGet();
+                        } catch (IllegalArgumentException | InterruptedException _) {
+                            // Юзер создастся только 1 раз, остальные потоки выкинут Exception
+                        }
+                    });
+                }
+
+                latch.countDown();
+                service.shutdown();
+                boolean terminated = service.awaitTermination(10, TimeUnit.SECONDS);
+                assertTrue(terminated, "All threads should complete within timeout");
+            }
+
+            assertEquals(1, successCount.get(), "Only one thread should succeed");
+            assertEquals(1, userManager.count(), "Only one user should exist");
+        }
     }
 
     @Nested
@@ -152,6 +186,37 @@ class ManagerTest {
             roleManager.addPermissionToRole(adminRole.getName(), writePerm);
 
             assertTrue(adminRole.hasPermission("WRITE", "users"));
+        }
+
+        @Test
+        @DisplayName("Concurrency: Role creation safety")
+        void shouldHandleConcurrentRoleCreation() throws InterruptedException {
+            int threads = 50;
+            var roleName = "SHARED_ROLE";
+            var successCount = new AtomicInteger(0);
+            var latch = new CountDownLatch(1);
+
+            try (var service = Executors.newFixedThreadPool(threads)) {
+                for (int i = 0; i < threads; i++) {
+                    service.execute(() -> {
+                        try {
+                            latch.await();
+                            roleManager.add(Role.create(roleName, "desc", null));
+                            successCount.incrementAndGet();
+                        } catch (IllegalArgumentException | InterruptedException _) {
+                            // Создастся только 1 роль
+                        }
+                    });
+                }
+
+                latch.countDown();
+                service.shutdown();
+                var terminated = service.awaitTermination(5, TimeUnit.SECONDS);
+                assertTrue(terminated, "All threads should complete within timeout");
+            }
+
+            assertEquals(1, successCount.get(), "Only one thread should succeed");
+            assertEquals(1, roleManager.count(), "Only one role should exist");
         }
     }
 
@@ -221,6 +286,36 @@ class ManagerTest {
 
             assertThrows(IllegalArgumentException.class,
                     () -> assignmentManager.extendTemporaryAssignment(perm.assignmentId(), "2030-01-01 00:00"));
+        }
+
+        @Test
+        @DisplayName("Concurrency: Prevent double assignment")
+        void shouldHandleConcurrentAssignment() throws InterruptedException {
+            int threads = 20;
+            var successCount = new AtomicInteger(0);
+            var latch = new CountDownLatch(1);
+
+            try (var service = Executors.newFixedThreadPool(threads)) {
+                for (int i = 0; i < threads; i++) {
+                    service.execute(() -> {
+                        try {
+                            latch.await();
+                            assignmentManager.add(new PermanentAssignment(user, role, meta));
+                            successCount.incrementAndGet();
+                        } catch (IllegalStateException | InterruptedException _) {
+                            // Добавится только 1 назначение
+                        }
+                    });
+                }
+
+                latch.countDown();
+                service.shutdown();
+                var terminated = service.awaitTermination(5, TimeUnit.SECONDS);
+                assertTrue(terminated, "All threads should complete within timeout");
+            }
+
+            assertEquals(1, successCount.get(), "Only one thread should succeed");
+            assertEquals(1, assignmentManager.count(), "Only one assignment should exist");
         }
     }
 }
