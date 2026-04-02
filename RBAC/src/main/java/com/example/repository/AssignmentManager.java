@@ -53,25 +53,25 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     public List<RoleAssignment> findByUser(User user) {
         return assignments.values().stream()
                 .filter(a -> a.user().equals(user))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<RoleAssignment> findByRole(Role role) {
         return assignments.values().stream()
                 .filter(a -> a.role().equals(role))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<RoleAssignment> getActiveAssignments() {
         return assignments.values().stream()
                 .filter(RoleAssignment::isActive)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<RoleAssignment> getExpiredAssignments() {
         return assignments.values().stream()
                 .filter(a -> a instanceof TemporaryAssignment && ((TemporaryAssignment) a).isExpired())
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public boolean userHasRole(User user, Role role) {
@@ -115,14 +115,14 @@ public class AssignmentManager implements Repository<RoleAssignment> {
     public List<RoleAssignment> findByFilter(AssignmentFilter filter) {
         return assignments.values().stream()
                 .filter(filter::test)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<RoleAssignment> findAll(AssignmentFilter filter, Comparator<RoleAssignment> sorter) {
         return assignments.values().stream()
                 .filter(filter::test)
                 .sorted(sorter)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public boolean hasAssignmentsForRole(Role role) {
