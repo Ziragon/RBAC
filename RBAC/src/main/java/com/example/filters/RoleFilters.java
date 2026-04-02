@@ -1,7 +1,6 @@
 package com.example.filters;
 
 import com.example.entity.Permission;
-import com.example.entity.Role;
 
 public class RoleFilters {
 
