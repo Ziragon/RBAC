@@ -64,4 +64,24 @@ class BackgroundExecutorTest {
 
         assertTrue(latch.await(5, TimeUnit.SECONDS), "All virtual threads should complete");
     }
+
+    @Test
+    @DisplayName("Should execute scheduled task periodically")
+    void shouldExecuteScheduledTask() throws InterruptedException {
+
+        // Запуск 3 задач
+        int expectedRuns = 3;
+        CountDownLatch latch = new CountDownLatch(expectedRuns);
+
+        long initialDelay = 0;
+        // Период выполнения 100 мс
+        long periodMs = 100;
+
+        executor.scheduleTask(latch::countDown, initialDelay, periodMs, TimeUnit.MILLISECONDS);
+
+        // Timeout 1 секунда
+        boolean completed = latch.await(1, TimeUnit.SECONDS);
+
+        assertTrue(completed, "Scheduled task should have run at least " + expectedRuns + " times");
+    }
 }

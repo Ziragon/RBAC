@@ -227,6 +227,7 @@ class ManagerTest {
         private AssignmentManager assignmentManager;
         private User user;
         private Role role;
+        private Role otherRole;
         private AssignmentMetadata meta;
 
         @BeforeEach
@@ -235,6 +236,7 @@ class ManagerTest {
             user = new User("testuser", "Test User", "test@test.com");
             Permission perm = new Permission("DELETE", "users", "Delete users");
             role = Role.create(uniqueName("TestRole"), "Test", Set.of(perm));
+            otherRole = Role.create(uniqueName("OtherRole"), "Test", Set.of(perm));
             meta = AssignmentMetadata.now("admin", "Test assignment");
         }
 
@@ -316,6 +318,22 @@ class ManagerTest {
 
             assertEquals(1, successCount.get(), "Only one thread should succeed");
             assertEquals(1, assignmentManager.count(), "Only one assignment should exist");
+        }
+
+        @Test
+        @DisplayName("Should remove only expired temporary assignments")
+        void shouldCleanupOnlyExpired() {
+            assignmentManager.add(new PermanentAssignment(user, role, meta));
+
+            TemporaryAssignment expired = new TemporaryAssignment(user, otherRole, meta, "2000-01-01 00:00", false);
+            assignmentManager.add(expired);
+
+            int removed = assignmentManager.cleanupExpiredAssignments();
+
+            assertAll(
+                    () -> assertEquals(1, removed, "One assignment should be removed"),
+                    () -> assertEquals(1, assignmentManager.count(), "Only permanent assignment should remain")
+            );
         }
     }
 }
