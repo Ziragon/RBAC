@@ -691,7 +691,9 @@ public class CommandRegistry {
                     "By role name",
                     "By type (permanent/temporary)",
                     "Active only",
-                    "Inactive only");
+                    "Inactive only",
+                    "By assigner (who issued the role)",
+                    "Assigned after date");
 
             List<RoleAssignment> results;
 
@@ -715,6 +717,14 @@ public class CommandRegistry {
                         .findByFilterParallel(AssignmentFilters.activeOnly());
                 case 5 -> results = system.getAssignmentManager()
                         .findByFilterParallel(AssignmentFilters.inactiveOnly());
+                case 6 -> {
+                    String username = ConsoleHelper.promptUsername(scanner, "Username");
+                    results = system.getAssignmentManager().findByFilterParallel(AssignmentFilters.assignedBy(username));
+                }
+                case 7 -> {
+                    String date = ConsoleHelper.promptDate(scanner, "Date");
+                    results = system.getAssignmentManager().findByFilterParallel(AssignmentFilters.assignedAfter(date));
+                }
                 default -> {
                     ConsoleHelper.printError("Invalid option");
                     return;

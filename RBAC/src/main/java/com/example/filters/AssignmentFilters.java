@@ -2,24 +2,16 @@ package com.example.filters;
 
 import com.example.assignment.RoleAssignment;
 import com.example.assignment.TemporaryAssignment;
-import com.example.entity.Role;
-import com.example.entity.User;
 import com.example.util.DateUtils;
 
 public class AssignmentFilters {
 
     private AssignmentFilters() {}
 
-    public static AssignmentFilter byUser(User user) {
-        return a -> a.user().equals(user);
-    }
+    // byUser и byRole уже имеются в менеджерах, смысла от них 0
 
     public static AssignmentFilter byUsername(String username) {
         return a -> a.user().username().equalsIgnoreCase(username);
-    }
-
-    public static AssignmentFilter byRole(Role role) {
-        return a -> a.role().equals(role);
     }
 
     public static AssignmentFilter byRoleName(String roleName) {
