@@ -682,6 +682,45 @@ public class CommandRegistry {
             }
         });
 
+        // assignment-toggle-autorenew
+        parser.registerCommand("assignment-toggle-autorenew", "Toggle Auto-renew of temporary assignment", (scanner, system) -> {
+            ConsoleHelper.printHeader("Toggle Auto-renew");
+
+            String username = ConsoleHelper.promptUsername(scanner, "Username");
+            Optional<User> userOpt = system.getUserManager().findByUsername(username);
+
+            if (userOpt.isEmpty()) {
+                ConsoleHelper.printError("User not found: " + username);
+                return;
+            }
+
+            List<RoleAssignment> tempAssignments = system.getAssignmentManager()
+                    .findByUser(userOpt.get()).stream()
+                    .filter(TemporaryAssignment.class::isInstance)
+                    .toList();
+
+            if (tempAssignments.isEmpty()) {
+                ConsoleHelper.printInfo("No temporary assignments for this user.");
+                return;
+            }
+
+            List<String> displayNames = tempAssignments.stream()
+                    .map(a -> {
+                        TemporaryAssignment t = (TemporaryAssignment) a;
+                        return t.role().getName() + " (Auto-renew: " + t.isAutoRenew() + ")";
+                    })
+                    .toList();
+
+            String chosen = ConsoleHelper.promptChoice(scanner, "Select assignment to toggle Auto-Renew", displayNames);
+            int index = displayNames.indexOf(chosen);
+
+            TemporaryAssignment toRenew = (TemporaryAssignment) tempAssignments.get(index);
+
+            boolean isRenew = ConsoleHelper.confirm(scanner, "Enable Auto-Renew?");
+            toRenew.setAutoRenew(isRenew);
+            ConsoleHelper.printSuccess("Assignment set Auto-renew to " + isRenew);
+        });
+
         // assignment-search
         parser.registerCommand("assignment-search", "Search assignments", (scanner, system) -> {
             ConsoleHelper.printHeader("Search Assignments");

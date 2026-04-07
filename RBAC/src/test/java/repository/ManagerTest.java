@@ -2,10 +2,7 @@ package repository;
 
 import com.example.assignment.PermanentAssignment;
 import com.example.assignment.TemporaryAssignment;
-import com.example.entity.AssignmentMetadata;
-import com.example.entity.Permission;
-import com.example.entity.Role;
-import com.example.entity.User;
+import com.example.entity.*;
 import com.example.filters.UserFilters;
 import com.example.repository.AssignmentManager;
 import com.example.repository.RoleManager;
@@ -313,16 +310,21 @@ class ManagerTest {
         void shouldRevokeOnlyExpired() {
             TemporaryAssignment expired = new TemporaryAssignment(user, role, meta, "2000-01-01 00:00", false);
 
-            Role otherRole = Role.create(uniqueName("TestRole"), "Test", Set.of());
-            TemporaryAssignment nonExpired = new TemporaryAssignment(user, otherRole, meta,
+            Role role1 = Role.create(uniqueName("TestRole1"), "Test", Set.of());
+            TemporaryAssignment renewed = new TemporaryAssignment(user, role1, meta, "2000-01-01 00:00", true);
+
+            Role role2 = Role.create(uniqueName("TestRole2"), "Test", Set.of());
+            TemporaryAssignment nonExpired = new TemporaryAssignment(user, role2, meta,
                     DateUtils.addDays(DateUtils.getCurrentDateTimeShort(), 1), false);
 
             assignmentManager.add(expired);
+            assignmentManager.add(renewed);
             assignmentManager.add(nonExpired);
 
-            int revoked = assignmentManager.revokeExpiredAssignments();
+            CleanupResult revoked = assignmentManager.processExpiredAssignments();
 
-            assertEquals(1, revoked, "One assignment should be revoked");
+            assertEquals(1, revoked.revokedCount(), "One assignment should be revoked");
+            assertEquals(1, revoked.renewedCount(), "One assignment should be renewed");
         }
     }
 }

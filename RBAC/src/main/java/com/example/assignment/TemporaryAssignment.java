@@ -6,6 +6,7 @@ import com.example.entity.User;
 import com.example.util.DateUtils;
 import com.example.util.ValidationUtils;
 
+@SuppressWarnings("java:S2160")
 public class TemporaryAssignment extends AbstractRoleAssignment {
 
     private volatile String expiresAt;
@@ -14,13 +15,10 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
     public TemporaryAssignment(User user, Role role, AssignmentMetadata metadata,
                                String expiresAt, boolean autoRenew) {
         super(user, role, metadata);
-        this.expiresAt = validateDate(expiresAt);
-        this.autoRenew = autoRenew;
-    }
 
-    private String validateDate(String date) {
-        ValidationUtils.validateDate(date);
-        return date;
+        ValidationUtils.validateDate(expiresAt);
+        this.expiresAt = expiresAt;
+        this.autoRenew = autoRenew;
     }
 
     public boolean isExpired() {
@@ -38,7 +36,8 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
     }
 
     public void extend(String newExpirationDate) {
-        this.expiresAt = validateDate(newExpirationDate);
+        ValidationUtils.validateDate(newExpirationDate);
+        this.expiresAt = newExpirationDate;
     }
 
     public String getTimeRemaining() {

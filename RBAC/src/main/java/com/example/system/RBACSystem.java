@@ -3,10 +3,7 @@ package com.example.system;
 import com.example.assignment.PermanentAssignment;
 import com.example.assignment.RoleAssignment;
 import com.example.audit.AuditLog;
-import com.example.entity.AssignmentMetadata;
-import com.example.entity.Permission;
-import com.example.entity.Role;
-import com.example.entity.User;
+import com.example.entity.*;
 import com.example.report.ReportGenerator;
 import com.example.repository.AssignmentManager;
 import com.example.repository.RoleManager;
@@ -228,15 +225,20 @@ public class RBACSystem {
     private void startMaintenanceTask() {
         backgroundExecutor.scheduleTask(() -> {
             try {
-                int cleanedCount = assignmentManager.revokeExpiredAssignments();
+                CleanupResult result = assignmentManager.processExpiredAssignments();
+
+                // Если ничего не произошло - скип сообщения
+                if (result.revokedCount() == 0 && result.renewedCount() == 0) {
+                    return;
+                }
 
                 int users = userManager.count();
                 int roles = roleManager.count();
                 int activeAssignments = assignmentManager.count();
 
                 String statsReport = String.format(
-                        "Cleanup: %d expired removed. System Stats: [Users: %d, Roles: %d, Assignments: %d]",
-                        cleanedCount, users, roles, activeAssignments
+                        "Cleanup: %d revoked, %d auto-renewed. System Stats: [Users: %d, Roles: %d, Assignments: %d]",
+                        result.revokedCount(), result.renewedCount(), users, roles, activeAssignments
                 );
 
                 auditLog.log("SYSTEM_MAINTENANCE", "system", "all", statsReport);
