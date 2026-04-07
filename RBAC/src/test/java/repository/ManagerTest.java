@@ -179,17 +179,6 @@ class ManagerTest {
         }
 
         @Test
-        @DisplayName("Should add permission to role")
-        void shouldAddPermissionToRole() {
-            roleManager.add(adminRole);
-            Permission writePerm = new Permission("WRITE", "users", "Edit users");
-
-            roleManager.addPermissionToRole(adminRole.getName(), writePerm);
-
-            assertTrue(adminRole.hasPermission("WRITE", "users"));
-        }
-
-        @Test
         @DisplayName("Concurrency: Role creation safety")
         void shouldHandleConcurrentRoleCreation() throws InterruptedException {
             int threads = 50;

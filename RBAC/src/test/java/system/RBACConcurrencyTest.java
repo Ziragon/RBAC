@@ -142,7 +142,7 @@ class RBACConcurrencyTest {
                         Role role = Role.create("Role_" + id, "Desc", Set.of());
                         system.getRoleManager().add(role);
                     } else {
-                        system.getUserManager().findAllParallel(u -> u.username().startsWith("mixed"),
+                        system.getUserManager().findAll(u -> u.username().startsWith("mixed"),
                                 Comparator.comparing(User::username));
                         system.getRoleManager().findAll();
                     }

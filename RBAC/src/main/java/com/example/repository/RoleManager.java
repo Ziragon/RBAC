@@ -1,6 +1,5 @@
 package com.example.repository;
 
-import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.filters.RoleFilter;
 import java.util.*;
@@ -72,17 +71,12 @@ public class RoleManager implements Repository<Role> {
         return rolesByName.containsKey(name);
     }
 
-    public void addPermissionToRole(String roleName, Permission permission) {
-        Role role = findByName(roleName)
-                .orElseThrow(() -> new NoSuchElementException("Role not found: " + roleName));
-        role.addPermission(permission);
-    }
-
-    public void removePermissionFromRole(String roleName, Permission permission) {
-        Role role = findByName(roleName)
-                .orElseThrow(() -> new NoSuchElementException("Role not found: " + roleName));
-        role.removePermission(permission);
-    }
+    /*
+    * Public void addPermissionToRole(String roleName, Permission permission)
+    * public void removePermissionFromRole(String roleName, Permission permission)
+    * Я убрал методы, т.к. логика уже была продублирована в Role сущности
+    * И с учетом моей логики в CommandRegistry смысла от использования методов менеджера вместо Role нет
+    */
 
     public List<Role> findRolesWithPermission(String permissionName, String resource) {
         return rolesById.values().stream()

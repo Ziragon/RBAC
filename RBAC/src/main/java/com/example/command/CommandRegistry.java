@@ -14,6 +14,7 @@ import com.example.filters.UserFilters;
 import com.example.util.ConsoleHelper;
 import com.example.util.FormatUtils;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -44,7 +45,10 @@ public class CommandRegistry {
         // user-list
         parser.registerCommand("user-list", "List all users", (scanner, system) -> {
             ConsoleHelper.printHeader("User List");
-            List<User> users = system.getUserManager().findAll();
+            List<User> users = system.getUserManager().findAll(
+                    _ -> true,
+                    Comparator.comparing(User::username)
+            );
 
             if (users.isEmpty()) {
                 ConsoleHelper.printInfo("No users found.");
@@ -215,7 +219,10 @@ public class CommandRegistry {
         // role-list
         parser.registerCommand("role-list", "List all roles", (scanner, system) -> {
             ConsoleHelper.printHeader("Role List");
-            List<Role> roles = system.getRoleManager().findAll();
+            List<Role> roles = system.getRoleManager().findAll(
+                    _ -> true,
+                    Comparator.comparing(Role::getName)
+            );
 
             if (roles.isEmpty()) {
                 ConsoleHelper.printInfo("No roles found.");
@@ -398,7 +405,7 @@ public class CommandRegistry {
                 case 2 -> {
                     String permName = ConsoleHelper.promptString(scanner, "Permission name", true);
                     String resource = ConsoleHelper.promptString(scanner, "Resource", true);
-                    results = system.getRoleManager().findByFilterParallel(RoleFilters.hasPermission(permName, resource));
+                    results = system.getRoleManager().findRolesWithPermission(permName, resource);
                 }
                 case 3 -> {
                     int min = ConsoleHelper.promptInt(scanner, "Minimum permissions", 1, 100);
@@ -439,7 +446,11 @@ public class CommandRegistry {
             User user = userOpt.get();
 
             // Показываем доступные роли
-            List<Role> roles = system.getRoleManager().findAll();
+            List<Role> roles = system.getRoleManager().findAll(
+                    role -> true,
+                    Comparator.comparing(Role::getName)
+            );
+
             if (roles.isEmpty()) {
                 ConsoleHelper.printError("No roles available.");
                 return;
@@ -460,7 +471,7 @@ public class CommandRegistry {
                     system.getAssignmentManager().add(assignment);
                 } else {
                     String expiration = ConsoleHelper.promptFutureDate(scanner,
-                            "Expiration date (yyyy-MM-dd HH:mm)");
+                            "Expiration date");
                     boolean autoRenew = ConsoleHelper.confirm(scanner, "Enable auto-renew?");
                     TemporaryAssignment assignment = new TemporaryAssignment(
                             user, role, metadata, expiration, autoRenew);
@@ -508,7 +519,12 @@ public class CommandRegistry {
         // assignment-list
         parser.registerCommand("assignment-list", "List all assignments", (scanner, system) -> {
             ConsoleHelper.printHeader("All Assignments");
-            List<RoleAssignment> assignments = system.getAssignmentManager().findAll();
+
+            List<RoleAssignment> assignments = system.getAssignmentManager().findAll(
+                    _ -> true,
+                    Comparator.comparing((RoleAssignment a) -> a.user().username())
+                            .thenComparing(a -> a.role().getName())
+            );
 
             if (assignments.isEmpty()) {
                 ConsoleHelper.printInfo("No assignments found.");
