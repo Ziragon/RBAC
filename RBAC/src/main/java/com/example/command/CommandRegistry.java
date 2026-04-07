@@ -209,9 +209,12 @@ public class CommandRegistry {
             if (results.isEmpty()) {
                 ConsoleHelper.printInfo("No users found.");
             } else {
-                results.sort(UserSorters.byUsername());
-                System.out.println("\nFound " + results.size() + " user(s):");
-                results.forEach(u -> System.out.println("  - " + u.format()));
+                List<User> sortedResults = results.stream()
+                        .sorted(UserSorters.byUsername())
+                        .toList();
+
+                System.out.println("\nFound " + sortedResults.size() + " user(s):");
+                sortedResults.forEach(u -> System.out.println("  - " + u.format()));
             }
         });
     }
@@ -424,9 +427,12 @@ public class CommandRegistry {
             if (results.isEmpty()) {
                 ConsoleHelper.printInfo("No roles found.");
             } else {
-                results.sort(RoleSorters.byName());
-                System.out.println("\nFound " + results.size() + " role(s):");
-                results.forEach(r -> System.out.println("  - " + r.getName() +
+                List<Role> sortedResults = results.stream()
+                        .sorted(RoleSorters.byName())
+                        .toList();
+
+                System.out.println("\nFound " + sortedResults.size() + " role(s):");
+                sortedResults.forEach(r -> System.out.println("  - " + r.getName() +
                         " (" + r.getPermissions().size() + " permissions)"));
             }
         });

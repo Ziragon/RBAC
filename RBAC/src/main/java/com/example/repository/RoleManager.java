@@ -27,18 +27,23 @@ public class RoleManager implements Repository<Role> {
         rolesByName.put(role.getName(), role);
     }
 
+    // Рекомендуемая правка для remove
     @Override
-    public synchronized boolean remove(Role role) {
-        if (role == null || !rolesById.containsKey(role.getId())) return false;
+    public boolean remove(Role role) {
+        if (role == null) return false;
 
         if (assignmentManager != null && assignmentManager.hasAssignmentsForRole(role)) {
             throw new IllegalStateException("Cannot remove role: it is currently assigned to users");
         }
 
-        Role.unregisterName(role.getName());
-        rolesById.remove(role.getId());
-        rolesByName.remove(role.getName());
-        return true;
+        synchronized (this) {
+            if (!rolesById.containsKey(role.getId())) return false;
+
+            Role.unregisterName(role.getName());
+            rolesById.remove(role.getId());
+            rolesByName.remove(role.getName());
+            return true;
+        }
     }
 
     @Override
