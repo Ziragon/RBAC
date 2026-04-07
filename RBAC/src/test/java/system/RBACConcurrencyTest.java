@@ -37,6 +37,7 @@ class RBACConcurrencyTest {
 
     @AfterEach
     void tearDown() {
+        system.getAuditLog().stop();
         system.getExecutor().close();
         executor.shutdownNow();
     }

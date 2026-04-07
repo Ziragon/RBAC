@@ -9,6 +9,8 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -27,6 +29,7 @@ class AuditLogTest {
 
     @AfterEach
     void tearDown() {
+        auditLog.stop();
         executor.close();
     }
 
@@ -35,11 +38,15 @@ class AuditLogTest {
     void shouldAddAndRetrieveEntry() throws InterruptedException {
         auditLog.log("USER_CREATE", "admin", "john_doe", "Created user");
 
-        Thread.sleep(100);
+        CountDownLatch latch = new CountDownLatch(1);
+        executor.execute(latch::countDown);
+
+        boolean finished = latch.await(2, TimeUnit.SECONDS);
 
         List<AuditEntry> entries = auditLog.getAll();
 
         assertAll(
+                () -> assertTrue(finished, "Timeout waiting for async log"),
                 () -> assertEquals(1, entries.size(), "Entry should be processed by background thread"),
                 () -> assertEquals("USER_CREATE", entries.getFirst().action())
         );
@@ -51,14 +58,20 @@ class AuditLogTest {
         auditLog.log("USER_CREATE", "admin", "john", "Created user");
         auditLog.log("ROLE_ASSIGN", "admin", "john", "Assigned role");
 
-        Thread.sleep(100);
+        CountDownLatch latch = new CountDownLatch(1);
+        executor.execute(latch::countDown);
+
+        boolean finished = latch.await(2, TimeUnit.SECONDS);
 
         String filename = "test_audit_async.csv";
         auditLog.saveToFile(filename);
 
         File file = new File(filename);
         try {
-            assertTrue(file.exists());
+            assertAll(
+                    () -> assertTrue(finished, "Timeout waiting for async log"),
+                    () -> assertTrue(file.exists())
+            );
         } finally {
             Files.deleteIfExists(file.toPath());
         }

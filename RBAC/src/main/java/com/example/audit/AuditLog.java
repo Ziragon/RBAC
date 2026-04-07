@@ -13,6 +13,9 @@ import java.util.concurrent.LinkedBlockingQueue;
 
 public class AuditLog {
 
+    private static final AuditEntry POISON_PILL =
+            new AuditEntry("", "", "", "", "");
+
     private final List<AuditEntry> entries;
 
     private final BlockingQueue<AuditEntry> logQueue;
@@ -27,6 +30,11 @@ public class AuditLog {
             try {
                 while (!Thread.currentThread().isInterrupted()) {
                     AuditEntry entry = logQueue.take();
+
+                    if (entry == POISON_PILL) {
+                        break;
+                    }
+
                     entries.add(entry);
                 }
             } catch (InterruptedException _) {
@@ -34,6 +42,15 @@ public class AuditLog {
                 System.err.println("Async logger interrupted.");
             }
         });
+    }
+
+    // Немедленная остановка AuditLog (метод нужен для быстрого прохождения тестов)
+    public void stop() {
+        try {
+            logQueue.put(POISON_PILL);
+        } catch (InterruptedException _) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     public void log(String action, String performer, String target, String details) {

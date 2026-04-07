@@ -35,8 +35,8 @@ public class BackgroundExecutor implements AutoCloseable {
         executor.shutdown();
         scheduler.shutdown();
         try {
-            if (!executor.awaitTermination(2, TimeUnit.SECONDS)) executor.shutdownNow();
-            if (!scheduler.awaitTermination(2, TimeUnit.SECONDS)) scheduler.shutdownNow();
+            if (!executor.awaitTermination(1, TimeUnit.SECONDS)) executor.shutdownNow();
+            if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) scheduler.shutdownNow();
         } catch (InterruptedException _) {
             executor.shutdownNow();
             scheduler.shutdownNow();
