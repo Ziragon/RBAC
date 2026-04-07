@@ -130,4 +130,19 @@ public class AssignmentManager implements Repository<RoleAssignment> {
         return assignments.values().stream()
                 .anyMatch(a -> a.role().equals(role));
     }
+
+    public int cleanupExpiredAssignments() {
+        List<String> expiredIds = assignments.values().stream()
+                .filter(a -> a instanceof TemporaryAssignment temp && temp.isExpired())
+                .map(RoleAssignment::assignmentId)
+                .toList();
+
+        int removedCount = 0;
+        for (String id : expiredIds) {
+            if (assignments.remove(id) != null) {
+                removedCount++;
+            }
+        }
+        return removedCount;
+    }
 }
