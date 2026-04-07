@@ -1,21 +1,17 @@
 package com.example.filters;
 
-import com.example.entity.Permission;
-
 public class RoleFilters {
 
-    public static RoleFilter byName(String name) {
-        return role -> role.getName().equals(name);
-    }
+    private RoleFilters() {}
+
+    // byName удален, его замена уже прописана в RoleManager
 
     public static RoleFilter byNameContains(String substring) {
         return role -> role.getName().toLowerCase()
                 .contains(substring.toLowerCase());
     }
 
-    public static RoleFilter hasPermission(Permission permission) {
-        return role -> role.hasPermission(permission);
-    }
+    // hasPermission(Permission _) тоже самое
 
     public static RoleFilter hasPermission(String permissionName, String resource) {
         return role -> role.hasPermission(permissionName, resource);

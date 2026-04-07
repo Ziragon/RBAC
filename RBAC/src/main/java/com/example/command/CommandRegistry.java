@@ -192,7 +192,7 @@ public class CommandRegistry {
                 case 1 -> results = system.getUserManager()
                         .findByFilterParallel(UserFilters.byUsernameContains(query));
                 case 2 -> results = system.getUserManager()
-                        .findByFilterParallel(u -> u.email().toLowerCase().contains(query.toLowerCase()));
+                        .findByFilterParallel(UserFilters.byEmailContains(query));
                 case 3 -> results = system.getUserManager()
                         .findByFilterParallel(UserFilters.byEmailDomain(query));
                 case 4 -> results = system.getUserManager()
@@ -217,7 +217,7 @@ public class CommandRegistry {
     private void registerRoleCommands() {
 
         // role-list
-        parser.registerCommand("role-list", "List all roles", (scanner, system) -> {
+        parser.registerCommand("role-list", "List all roles", (_, system) -> {
             ConsoleHelper.printHeader("Role List");
             List<Role> roles = system.getRoleManager().findAll(
                     _ -> true,
@@ -447,7 +447,7 @@ public class CommandRegistry {
 
             // Показываем доступные роли
             List<Role> roles = system.getRoleManager().findAll(
-                    role -> true,
+                    _ -> true,
                     Comparator.comparing(Role::getName)
             );
 
@@ -517,7 +517,7 @@ public class CommandRegistry {
         });
 
         // assignment-list
-        parser.registerCommand("assignment-list", "List all assignments", (scanner, system) -> {
+        parser.registerCommand("assignment-list", "List all assignments", (_, system) -> {
             ConsoleHelper.printHeader("All Assignments");
 
             List<RoleAssignment> assignments = system.getAssignmentManager().findAll(
@@ -599,7 +599,7 @@ public class CommandRegistry {
         });
 
         // assignment-active
-        parser.registerCommand("assignment-active", "List active assignments", (scanner, system) -> {
+        parser.registerCommand("assignment-active", "List active assignments", (_, system) -> {
             ConsoleHelper.printHeader("Active Assignments");
 
             List<RoleAssignment> active = system.getAssignmentManager().getActiveAssignments();
@@ -618,7 +618,7 @@ public class CommandRegistry {
         });
 
         // assignment-expired
-        parser.registerCommand("assignment-expired", "List expired assignments", (scanner, system) -> {
+        parser.registerCommand("assignment-expired", "List expired assignments", (_, system) -> {
             ConsoleHelper.printHeader("Expired Assignments");
 
             List<RoleAssignment> expired = system.getAssignmentManager().getExpiredAssignments();
@@ -652,7 +652,7 @@ public class CommandRegistry {
 
             List<RoleAssignment> tempAssignments = system.getAssignmentManager()
                     .findByUser(userOpt.get()).stream()
-                    .filter(a -> a instanceof TemporaryAssignment)
+                    .filter(TemporaryAssignment.class::isInstance)
                     .toList();
 
             if (tempAssignments.isEmpty()) {
@@ -873,17 +873,13 @@ public class CommandRegistry {
 
             system.getExecutor().execute(() -> {
                 try {
-                    // Выполняем тяжелую работу (сбор данных)
                     String report = system.getReportGenerator().generateUserReport(
                             system.getUserManager(), system.getAssignmentManager());
 
-                    // Сохраняем в файл
                     system.getReportGenerator().exportToFile(report, filename);
 
-                    // Уведомляем пользователя поверх консоли
                     System.out.println("\n[BACKGROUND SUCCESS] Report successfully saved to: " + filename + "\n> ");
 
-                    // Логируем успешное действие асинхронно
                     system.getAuditLog().log("REPORT_ASYNC", "system", filename, "Background report generated");
                 } catch (Exception e) {
                     System.err.println("\n[BACKGROUND ERROR] Report generation failed: " + e.getMessage() + "\n> ");
@@ -898,18 +894,18 @@ public class CommandRegistry {
 
         // help
         parser.registerCommand("help", "Show available commands",
-                (scanner, system) -> parser.printHelp());
+                (_, _) -> parser.printHelp());
 
         // stats
         parser.registerCommand("stats", "Show system statistics",
-                (scanner, system) -> System.out.println(system.generateStatistics()));
+                (_, system) -> System.out.println(system.generateStatistics()));
 
         // clear
         parser.registerCommand("clear", "Clear screen",
-                (scanner, system) -> ConsoleHelper.clearScreen());
+                (_, _) -> ConsoleHelper.clearScreen());
 
         // exit
-        parser.registerCommand("exit", "Exit the application", (scanner, system) -> {
+        parser.registerCommand("exit", "Exit the application", (scanner, _) -> {
             if (ConsoleHelper.confirm(scanner, "Are you sure you want to exit?")) {
                 ConsoleHelper.printInfo("Goodbye!");
                 System.exit(0);
@@ -917,9 +913,8 @@ public class CommandRegistry {
         });
 
         // whoami
-        parser.registerCommand("whoami", "Show current user", (scanner, system) -> {
-            System.out.println("Current user: " + system.getCurrentUser());
-        });
+        parser.registerCommand("whoami", "Show current user", (_, system) ->
+            System.out.println("Current user: " + system.getCurrentUser()));
 
         // switch-user
         parser.registerCommand("switch-user", "Switch current user", (scanner, system) -> {

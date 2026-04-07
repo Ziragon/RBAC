@@ -8,6 +8,8 @@ import com.example.util.DateUtils;
 
 public class AssignmentFilters {
 
+    private AssignmentFilters() {}
+
     public static AssignmentFilter byUser(User user) {
         return a -> a.user().equals(user);
     }
