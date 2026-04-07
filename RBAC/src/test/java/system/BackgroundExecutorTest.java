@@ -44,12 +44,16 @@ class BackgroundExecutorTest {
     @Test
     @DisplayName("Should submit callable and return result")
     void shouldSubmitCallable() throws Exception {
+        CountDownLatch workLatch = new CountDownLatch(1);
+
         Future<String> future = executor.submit(() -> {
-            Thread.sleep(100);
+            workLatch.await();
             return "Done";
         });
 
-        assertEquals("Done", future.get(2, TimeUnit.SECONDS));
+        workLatch.countDown();
+
+        assertEquals("Done", future.get(1, TimeUnit.SECONDS));
     }
 
     @Test
@@ -63,5 +67,25 @@ class BackgroundExecutorTest {
         }
 
         assertTrue(latch.await(5, TimeUnit.SECONDS), "All virtual threads should complete");
+    }
+
+    @Test
+    @DisplayName("Should execute scheduled task periodically")
+    void shouldExecuteScheduledTask() throws InterruptedException {
+
+        // Запуск 3 задач
+        int expectedRuns = 3;
+        CountDownLatch latch = new CountDownLatch(expectedRuns);
+
+        long initialDelay = 0;
+        // Период выполнения 100 мс
+        long periodMs = 100;
+
+        executor.scheduleTask(latch::countDown, initialDelay, periodMs, TimeUnit.MILLISECONDS);
+
+        // Timeout 1 секунда
+        boolean completed = latch.await(1, TimeUnit.SECONDS);
+
+        assertTrue(completed, "Scheduled task should have run at least " + expectedRuns + " times");
     }
 }

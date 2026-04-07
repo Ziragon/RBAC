@@ -130,4 +130,22 @@ public class AssignmentManager implements Repository<RoleAssignment> {
         return assignments.values().stream()
                 .anyMatch(a -> a.role().equals(role));
     }
+
+    public int revokeExpiredAssignments() {
+        // Только те Assignment, которые неактивны и не помечены revoked
+        List<TemporaryAssignment> toRevoke = assignments.values().stream()
+                .filter(a -> a instanceof TemporaryAssignment temp
+                        && !temp.isRevoked()
+                        && temp.isExpired())
+                .map(a -> (TemporaryAssignment) a)
+                .toList();
+
+        int deactivatedCount = 0;
+        for (TemporaryAssignment temp : toRevoke) {
+            temp.revoke();
+            deactivatedCount++;
+        }
+
+        return deactivatedCount;
+    }
 }

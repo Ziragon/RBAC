@@ -10,6 +10,7 @@ import com.example.filters.UserFilters;
 import com.example.repository.AssignmentManager;
 import com.example.repository.RoleManager;
 import com.example.repository.UserManager;
+import com.example.util.DateUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -316,6 +317,23 @@ class ManagerTest {
 
             assertEquals(1, successCount.get(), "Only one thread should succeed");
             assertEquals(1, assignmentManager.count(), "Only one assignment should exist");
+        }
+
+        @Test
+        @DisplayName("Should revoke only expired temporary assignments")
+        void shouldRevokeOnlyExpired() {
+            TemporaryAssignment expired = new TemporaryAssignment(user, role, meta, "2000-01-01 00:00", false);
+
+            Role otherRole = Role.create(uniqueName("TestRole"), "Test", Set.of());
+            TemporaryAssignment nonExpired = new TemporaryAssignment(user, otherRole, meta,
+                    DateUtils.addDays(DateUtils.getCurrentDateTimeShort(), 1), false);
+
+            assignmentManager.add(expired);
+            assignmentManager.add(nonExpired);
+
+            int revoked = assignmentManager.revokeExpiredAssignments();
+
+            assertEquals(1, revoked, "One assignment should be revoked");
         }
     }
 }

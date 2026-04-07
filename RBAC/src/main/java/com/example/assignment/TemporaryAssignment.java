@@ -10,7 +10,7 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
 
     private volatile String expiresAt;
     private volatile boolean autoRenew;
-    private volatile boolean revoked;
+    private volatile boolean revoked = false;
 
     public TemporaryAssignment(User user, Role role, AssignmentMetadata metadata,
                                String expiresAt, boolean autoRenew) {

@@ -1,17 +1,19 @@
 package com.example.system;
 
-import java.util.concurrent.Callable;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
 
 public class BackgroundExecutor implements AutoCloseable {
 
     private final ExecutorService executor;
+    private final ScheduledExecutorService scheduler;
 
     public BackgroundExecutor() {
         this.executor = Executors.newVirtualThreadPerTaskExecutor();
+        this.scheduler = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "Maintenance-Scheduler");
+            t.setDaemon(true);
+            return t;
+        });
     }
 
     // Runnable
@@ -24,15 +26,20 @@ public class BackgroundExecutor implements AutoCloseable {
         return executor.submit(task);
     }
 
+    public void scheduleTask(Runnable task, long initialDelay, long period, TimeUnit unit) {
+        scheduler.scheduleAtFixedRate(task, initialDelay, period, unit);
+    }
+
     @Override
     public void close() {
         executor.shutdown();
+        scheduler.shutdown();
         try {
-            if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
-                executor.shutdownNow();
-            }
-        } catch (InterruptedException e) {
+            if (!executor.awaitTermination(1, TimeUnit.SECONDS)) executor.shutdownNow();
+            if (!scheduler.awaitTermination(1, TimeUnit.SECONDS)) scheduler.shutdownNow();
+        } catch (InterruptedException _) {
             executor.shutdownNow();
+            scheduler.shutdownNow();
             Thread.currentThread().interrupt();
         }
     }
