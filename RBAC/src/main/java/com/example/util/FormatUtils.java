@@ -109,6 +109,12 @@ public class FormatUtils {
         return " ".repeat(length - text.length()) + text;
     }
 
+    public static String abbreviate(String str, int maxLength) {
+        if (str == null) return "";
+        if (str.length() <= maxLength) return str;
+        return str.substring(0, maxLength - 1) + ".";
+    }
+
     // Горизонтальная граница таблицы
     private static String buildBorder(int[] widths) {
         StringBuilder sb = new StringBuilder("+");

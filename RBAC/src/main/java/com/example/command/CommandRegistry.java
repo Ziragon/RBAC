@@ -43,7 +43,7 @@ public class CommandRegistry {
     private void registerUserCommands() {
 
         // user-list
-        parser.registerCommand("user-list", "List all users", (scanner, system) -> {
+        parser.registerCommand("user-list", "List all users", (_, system) -> {
             ConsoleHelper.printHeader("User List");
             List<User> users = system.getUserManager().findAll(
                     _ -> true,
@@ -1021,6 +1021,7 @@ public class CommandRegistry {
                         ConsoleHelper.printError("Failed to save: " + e.getMessage());
                     }
                 }
+                default -> ConsoleHelper.printError("Invalid option");
             }
         });
 
