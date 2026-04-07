@@ -3,10 +3,7 @@ package com.example.system;
 import com.example.assignment.PermanentAssignment;
 import com.example.assignment.RoleAssignment;
 import com.example.audit.AuditLog;
-import com.example.entity.AssignmentMetadata;
-import com.example.entity.Permission;
-import com.example.entity.Role;
-import com.example.entity.User;
+import com.example.entity.*;
 import com.example.report.ReportGenerator;
 import com.example.repository.AssignmentManager;
 import com.example.repository.RoleManager;
@@ -18,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 public class RBACSystem {
 
     private static final int CLEANUP_PERIOD_SECONDS = 30;
+    private static final String SYSTEM_USER = "system";
 
     private final UserManager userManager;
     private final RoleManager roleManager;
@@ -36,7 +34,7 @@ public class RBACSystem {
         this.reportGenerator = new ReportGenerator();
         this.backgroundExecutor = new BackgroundExecutor();
         this.auditLog.startAsyncLogger(this.backgroundExecutor);
-        this.currentUser = "system";
+        this.currentUser = SYSTEM_USER;
 
         startMaintenanceTask();
     }
@@ -84,10 +82,12 @@ public class RBACSystem {
     }
 
     public void initialize() {
+        Role.clearNameRegistry();
+
         createDefaultPermissionsAndRoles();
         createDefaultAdmin();
 
-        log("SYSTEM_INIT", "system", "System initialized with default data");
+        log("SYSTEM_INIT", SYSTEM_USER, "System initialized with default data");
 
         System.out.println("System initialized successfully!");
         System.out.println(generateStatistics());
@@ -105,7 +105,7 @@ public class RBACSystem {
         Permission readAssignments = new Permission("READ", "assignments", "View assignments");
         Permission writeAssignments = new Permission("WRITE", "assignments", "Create and revoke assignments");
 
-        Permission adminSystem = new Permission("ADMIN", "system", "Full system administration");
+        Permission adminSystem = new Permission("ADMIN", SYSTEM_USER, "Full system administration");
         Permission readReports = new Permission("READ", "reports", "View system reports and statistics");
 
         Role adminRole = Role.create("Administrator", "Full system access with all permissions",
@@ -142,7 +142,7 @@ public class RBACSystem {
         Role adminRole = roleManager.findByName("Administrator")
                 .orElseThrow(() -> new IllegalStateException("Administrator role not found"));
 
-        AssignmentMetadata metadata = AssignmentMetadata.now("system", "Initial system setup");
+        AssignmentMetadata metadata = AssignmentMetadata.now(SYSTEM_USER, "Initial system setup");
         PermanentAssignment adminAssignment = new PermanentAssignment(admin, adminRole, metadata);
         assignmentManager.add(adminAssignment);
 
@@ -212,8 +212,7 @@ public class RBACSystem {
         roleManager.clear();
         userManager.clear();
         auditLog.clear();
-        Role.clearNameRegistry();
-        currentUser = "system";
+        currentUser = SYSTEM_USER;
     }
 
     public void printSystemInfo() {
@@ -227,18 +226,23 @@ public class RBACSystem {
     private void startMaintenanceTask() {
         backgroundExecutor.scheduleTask(() -> {
             try {
-                int cleanedCount = assignmentManager.revokeExpiredAssignments();
+                CleanupResult result = assignmentManager.processExpiredAssignments();
+
+                // Если ничего не произошло - скип сообщения
+                if (result.revokedCount() == 0 && result.renewedCount() == 0) {
+                    return;
+                }
 
                 int users = userManager.count();
                 int roles = roleManager.count();
                 int activeAssignments = assignmentManager.count();
 
                 String statsReport = String.format(
-                        "Cleanup: %d expired removed. System Stats: [Users: %d, Roles: %d, Assignments: %d]",
-                        cleanedCount, users, roles, activeAssignments
+                        "Cleanup: %d revoked, %d auto-renewed. System Stats: [Users: %d, Roles: %d, Assignments: %d]",
+                        result.revokedCount(), result.renewedCount(), users, roles, activeAssignments
                 );
 
-                auditLog.log("SYSTEM_MAINTENANCE", "system", "all", statsReport);
+                auditLog.log("SYSTEM_MAINTENANCE", SYSTEM_USER, "all", statsReport);
 
             } catch (Exception e) {
                 System.err.println("[MAINTENANCE ERROR] " + e.getMessage());

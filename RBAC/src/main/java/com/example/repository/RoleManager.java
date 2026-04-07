@@ -1,6 +1,5 @@
 package com.example.repository;
 
-import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.filters.RoleFilter;
 import java.util.*;
@@ -28,17 +27,23 @@ public class RoleManager implements Repository<Role> {
         rolesByName.put(role.getName(), role);
     }
 
+    // Рекомендуемая правка для remove
     @Override
-    public synchronized boolean remove(Role role) {
-        if (role == null || !rolesById.containsKey(role.getId())) return false;
+    public boolean remove(Role role) {
+        if (role == null) return false;
 
         if (assignmentManager != null && assignmentManager.hasAssignmentsForRole(role)) {
             throw new IllegalStateException("Cannot remove role: it is currently assigned to users");
         }
 
-        rolesById.remove(role.getId());
-        rolesByName.remove(role.getName());
-        return true;
+        synchronized (this) {
+            if (!rolesById.containsKey(role.getId())) return false;
+
+            Role.unregisterName(role.getName());
+            rolesById.remove(role.getId());
+            rolesByName.remove(role.getName());
+            return true;
+        }
     }
 
     @Override
@@ -64,23 +69,19 @@ public class RoleManager implements Repository<Role> {
     public synchronized void clear() {
         rolesById.clear();
         rolesByName.clear();
+        Role.clearNameRegistry();
     }
 
     public boolean exists(String name) {
         return rolesByName.containsKey(name);
     }
 
-    public void addPermissionToRole(String roleName, Permission permission) {
-        Role role = findByName(roleName)
-                .orElseThrow(() -> new NoSuchElementException("Role not found: " + roleName));
-        role.addPermission(permission);
-    }
-
-    public void removePermissionFromRole(String roleName, Permission permission) {
-        Role role = findByName(roleName)
-                .orElseThrow(() -> new NoSuchElementException("Role not found: " + roleName));
-        role.removePermission(permission);
-    }
+    /*
+    * Public void addPermissionToRole(String roleName, Permission permission)
+    * public void removePermissionFromRole(String roleName, Permission permission)
+    * Я убрал методы, т.к. логика уже была продублирована в Role сущности
+    * И с учетом моей логики в CommandRegistry смысла от использования методов менеджера вместо Role нет
+    */
 
     public List<Role> findRolesWithPermission(String permissionName, String resource) {
         return rolesById.values().stream()

@@ -12,6 +12,7 @@ public abstract class AbstractRoleAssignment implements RoleAssignment {
     private final User user;
     private final Role role;
     private final AssignmentMetadata metadata;
+    private volatile boolean revoked = false;
 
     protected AbstractRoleAssignment(User user, Role role, AssignmentMetadata metadata) {
         this.assignmentId = generateId();
@@ -45,10 +46,14 @@ public abstract class AbstractRoleAssignment implements RoleAssignment {
     }
 
     @Override
-    public abstract boolean isActive();
+    public void revoke() {
+        this.revoked = true;
+    }
 
     @Override
-    public abstract String assignmentType();
+    public boolean isRevoked() {
+        return revoked;
+    }
 
     @Override
     public boolean equals(Object o) {

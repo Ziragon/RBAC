@@ -4,6 +4,8 @@ import com.example.entity.User;
 import java.util.Comparator;
 
 public class UserSorters {
+    private UserSorters() {}
+
     public static Comparator<User> byUsername() {
         return Comparator.comparing(User::username);
     }

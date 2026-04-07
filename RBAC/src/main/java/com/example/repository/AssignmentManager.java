@@ -1,11 +1,13 @@
 package com.example.repository;
 
+import com.example.entity.CleanupResult;
 import com.example.filters.AssignmentFilter;
 import com.example.assignment.RoleAssignment;
 import com.example.assignment.TemporaryAssignment;
 import com.example.entity.Permission;
 import com.example.entity.Role;
 import com.example.entity.User;
+import com.example.util.DateUtils;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -119,8 +121,8 @@ public class AssignmentManager implements Repository<RoleAssignment> {
                 .toList();
     }
 
-    public List<RoleAssignment> findAllParallel(AssignmentFilter filter, Comparator<RoleAssignment> sorter) {
-        return assignments.values().parallelStream()
+    public List<RoleAssignment> findAll(AssignmentFilter filter, Comparator<RoleAssignment> sorter) {
+        return assignments.values().stream()
                 .filter(filter::test)
                 .sorted(sorter)
                 .toList();
@@ -131,21 +133,27 @@ public class AssignmentManager implements Repository<RoleAssignment> {
                 .anyMatch(a -> a.role().equals(role));
     }
 
-    public int revokeExpiredAssignments() {
+    public CleanupResult processExpiredAssignments() {
         // Только те Assignment, которые неактивны и не помечены revoked
-        List<TemporaryAssignment> toRevoke = assignments.values().stream()
+        List<TemporaryAssignment> expiredList = assignments.values().stream()
                 .filter(a -> a instanceof TemporaryAssignment temp
                         && !temp.isRevoked()
                         && temp.isExpired())
                 .map(a -> (TemporaryAssignment) a)
                 .toList();
 
-        int deactivatedCount = 0;
-        for (TemporaryAssignment temp : toRevoke) {
-            temp.revoke();
-            deactivatedCount++;
+        int revokedCount = 0;
+        int renewedCount = 0;
+        for (TemporaryAssignment temp : expiredList) {
+            if (temp.isAutoRenew()) {
+                temp.extend(DateUtils.addHours(DateUtils.getCurrentDateTimeShort(), 2));
+                renewedCount++;
+            } else {
+                temp.revoke();
+                revokedCount++;
+            }
         }
 
-        return deactivatedCount;
+        return new CleanupResult(revokedCount, renewedCount);
     }
 }

@@ -8,9 +8,8 @@ import com.example.system.RBACSystem;
 import java.util.Scanner;
 
 public class Main {
-    public static void main(String[] args) {
-        Role.clearNameRegistry();
-
+    @SuppressWarnings("unused")
+    static void main(String[] args) {
         RBACSystem system = new RBACSystem();
         system.initialize();
 
@@ -18,17 +17,23 @@ public class Main {
         CommandRegistry registry = new CommandRegistry(parser);
         registry.registerAll();
 
-        Scanner scanner = new Scanner(System.in);
-
         System.out.println("\n+---------------------------------------+");
         System.out.println("|     RBAC Management System             |");
         System.out.println("|     Type 'help' for commands           |");
         System.out.println("+----------------------------------------+");
 
-        while (true) {
-            System.out.print("\n[" + system.getCurrentUser() + "]> ");
-            String input = scanner.nextLine();
-            parser.parseAndExecute(input, scanner, system);
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (true) {
+                System.out.print("\n[" + system.getCurrentUser() + "]> ");
+
+                if (!scanner.hasNextLine()) {
+                    System.out.println("Input stream closed. Exiting...");
+                    break;
+                }
+
+                String input = scanner.nextLine();
+                parser.parseAndExecute(input, scanner, system);
+            }
         }
     }
 }

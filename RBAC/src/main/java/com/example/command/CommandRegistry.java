@@ -11,9 +11,13 @@ import com.example.entity.User;
 import com.example.filters.AssignmentFilters;
 import com.example.filters.RoleFilters;
 import com.example.filters.UserFilters;
+import com.example.sorters.AssignmentSorters;
+import com.example.sorters.RoleSorters;
+import com.example.sorters.UserSorters;
 import com.example.util.ConsoleHelper;
 import com.example.util.FormatUtils;
 
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
@@ -42,9 +46,12 @@ public class CommandRegistry {
     private void registerUserCommands() {
 
         // user-list
-        parser.registerCommand("user-list", "List all users", (scanner, system) -> {
+        parser.registerCommand("user-list", "List all users", (_, system) -> {
             ConsoleHelper.printHeader("User List");
-            List<User> users = system.getUserManager().findAll();
+            List<User> users = system.getUserManager().findAll(
+                    _ -> true,
+                    UserSorters.byUsername()
+            );
 
             if (users.isEmpty()) {
                 ConsoleHelper.printInfo("No users found.");
@@ -188,7 +195,7 @@ public class CommandRegistry {
                 case 1 -> results = system.getUserManager()
                         .findByFilterParallel(UserFilters.byUsernameContains(query));
                 case 2 -> results = system.getUserManager()
-                        .findByFilterParallel(u -> u.email().toLowerCase().contains(query.toLowerCase()));
+                        .findByFilterParallel(UserFilters.byEmailContains(query));
                 case 3 -> results = system.getUserManager()
                         .findByFilterParallel(UserFilters.byEmailDomain(query));
                 case 4 -> results = system.getUserManager()
@@ -202,8 +209,12 @@ public class CommandRegistry {
             if (results.isEmpty()) {
                 ConsoleHelper.printInfo("No users found.");
             } else {
-                System.out.println("\nFound " + results.size() + " user(s):");
-                results.forEach(u -> System.out.println("  - " + u.format()));
+                List<User> sortedResults = results.stream()
+                        .sorted(UserSorters.byUsername())
+                        .toList();
+
+                System.out.println("\nFound " + sortedResults.size() + " user(s):");
+                sortedResults.forEach(u -> System.out.println("  - " + u.format()));
             }
         });
     }
@@ -213,9 +224,12 @@ public class CommandRegistry {
     private void registerRoleCommands() {
 
         // role-list
-        parser.registerCommand("role-list", "List all roles", (scanner, system) -> {
+        parser.registerCommand("role-list", "List all roles", (_, system) -> {
             ConsoleHelper.printHeader("Role List");
-            List<Role> roles = system.getRoleManager().findAll();
+            List<Role> roles = system.getRoleManager().findAll(
+                    _ -> true,
+                    RoleSorters.byName()
+            );
 
             if (roles.isEmpty()) {
                 ConsoleHelper.printInfo("No roles found.");
@@ -398,7 +412,7 @@ public class CommandRegistry {
                 case 2 -> {
                     String permName = ConsoleHelper.promptString(scanner, "Permission name", true);
                     String resource = ConsoleHelper.promptString(scanner, "Resource", true);
-                    results = system.getRoleManager().findByFilterParallel(RoleFilters.hasPermission(permName, resource));
+                    results = system.getRoleManager().findRolesWithPermission(permName, resource);
                 }
                 case 3 -> {
                     int min = ConsoleHelper.promptInt(scanner, "Minimum permissions", 1, 100);
@@ -413,8 +427,12 @@ public class CommandRegistry {
             if (results.isEmpty()) {
                 ConsoleHelper.printInfo("No roles found.");
             } else {
-                System.out.println("\nFound " + results.size() + " role(s):");
-                results.forEach(r -> System.out.println("  - " + r.getName() +
+                List<Role> sortedResults = results.stream()
+                        .sorted(RoleSorters.byName())
+                        .toList();
+
+                System.out.println("\nFound " + sortedResults.size() + " role(s):");
+                sortedResults.forEach(r -> System.out.println("  - " + r.getName() +
                         " (" + r.getPermissions().size() + " permissions)"));
             }
         });
@@ -439,7 +457,11 @@ public class CommandRegistry {
             User user = userOpt.get();
 
             // Показываем доступные роли
-            List<Role> roles = system.getRoleManager().findAll();
+            List<Role> roles = system.getRoleManager().findAll(
+                    _ -> true,
+                    Comparator.comparing(Role::getName)
+            );
+
             if (roles.isEmpty()) {
                 ConsoleHelper.printError("No roles available.");
                 return;
@@ -460,7 +482,7 @@ public class CommandRegistry {
                     system.getAssignmentManager().add(assignment);
                 } else {
                     String expiration = ConsoleHelper.promptFutureDate(scanner,
-                            "Expiration date (yyyy-MM-dd HH:mm)");
+                            "Expiration date");
                     boolean autoRenew = ConsoleHelper.confirm(scanner, "Enable auto-renew?");
                     TemporaryAssignment assignment = new TemporaryAssignment(
                             user, role, metadata, expiration, autoRenew);
@@ -506,9 +528,13 @@ public class CommandRegistry {
         });
 
         // assignment-list
-        parser.registerCommand("assignment-list", "List all assignments", (scanner, system) -> {
+        parser.registerCommand("assignment-list", "List all assignments", (_, system) -> {
             ConsoleHelper.printHeader("All Assignments");
-            List<RoleAssignment> assignments = system.getAssignmentManager().findAll();
+
+            List<RoleAssignment> assignments = system.getAssignmentManager().findAll(
+                    _ -> true,
+                    AssignmentSorters.byUsername().thenComparing(AssignmentSorters.byRoleName())
+            );
 
             if (assignments.isEmpty()) {
                 ConsoleHelper.printInfo("No assignments found.");
@@ -583,7 +609,7 @@ public class CommandRegistry {
         });
 
         // assignment-active
-        parser.registerCommand("assignment-active", "List active assignments", (scanner, system) -> {
+        parser.registerCommand("assignment-active", "List active assignments", (_, system) -> {
             ConsoleHelper.printHeader("Active Assignments");
 
             List<RoleAssignment> active = system.getAssignmentManager().getActiveAssignments();
@@ -593,16 +619,18 @@ public class CommandRegistry {
                 return;
             }
 
+            active.sort(AssignmentSorters.byUsername().thenComparing(AssignmentSorters.byRoleName()));
+
             for (RoleAssignment a : active) {
-                System.out.printf("  - %s -> %s [%s]%n",
-                        a.user().username(), a.role().getName(), a.assignmentType());
+                String paddedUsername = FormatUtils.padRight(a.user().username(), 15);
+                System.out.println("  - " + paddedUsername + " -> " + a.role().getName() + " [" + a.assignmentType() + "]");
             }
 
             System.out.println("\nTotal: " + active.size() + " active assignment(s)");
         });
 
         // assignment-expired
-        parser.registerCommand("assignment-expired", "List expired assignments", (scanner, system) -> {
+        parser.registerCommand("assignment-expired", "List expired assignments", (_, system) -> {
             ConsoleHelper.printHeader("Expired Assignments");
 
             List<RoleAssignment> expired = system.getAssignmentManager().getExpiredAssignments();
@@ -636,7 +664,7 @@ public class CommandRegistry {
 
             List<RoleAssignment> tempAssignments = system.getAssignmentManager()
                     .findByUser(userOpt.get()).stream()
-                    .filter(a -> a instanceof TemporaryAssignment)
+                    .filter(TemporaryAssignment.class::isInstance)
                     .toList();
 
             if (tempAssignments.isEmpty()) {
@@ -666,6 +694,45 @@ public class CommandRegistry {
             }
         });
 
+        // assignment-toggle-autorenew
+        parser.registerCommand("assignment-toggle-autorenew", "Toggle Auto-renew of temporary assignment", (scanner, system) -> {
+            ConsoleHelper.printHeader("Toggle Auto-renew");
+
+            String username = ConsoleHelper.promptUsername(scanner, "Username");
+            Optional<User> userOpt = system.getUserManager().findByUsername(username);
+
+            if (userOpt.isEmpty()) {
+                ConsoleHelper.printError("User not found: " + username);
+                return;
+            }
+
+            List<RoleAssignment> tempAssignments = system.getAssignmentManager()
+                    .findByUser(userOpt.get()).stream()
+                    .filter(TemporaryAssignment.class::isInstance)
+                    .toList();
+
+            if (tempAssignments.isEmpty()) {
+                ConsoleHelper.printInfo("No temporary assignments for this user.");
+                return;
+            }
+
+            List<String> displayNames = tempAssignments.stream()
+                    .map(a -> {
+                        TemporaryAssignment t = (TemporaryAssignment) a;
+                        return t.role().getName() + " (Auto-renew: " + t.isAutoRenew() + ")";
+                    })
+                    .toList();
+
+            String chosen = ConsoleHelper.promptChoice(scanner, "Select assignment to toggle Auto-Renew", displayNames);
+            int index = displayNames.indexOf(chosen);
+
+            TemporaryAssignment toRenew = (TemporaryAssignment) tempAssignments.get(index);
+
+            boolean isRenew = ConsoleHelper.confirm(scanner, "Enable Auto-Renew?");
+            toRenew.setAutoRenew(isRenew);
+            ConsoleHelper.printSuccess("Assignment set Auto-renew to " + isRenew);
+        });
+
         // assignment-search
         parser.registerCommand("assignment-search", "Search assignments", (scanner, system) -> {
             ConsoleHelper.printHeader("Search Assignments");
@@ -675,7 +742,9 @@ public class CommandRegistry {
                     "By role name",
                     "By type (permanent/temporary)",
                     "Active only",
-                    "Inactive only");
+                    "Inactive only",
+                    "By assigner (who issued the role)",
+                    "Assigned after date");
 
             List<RoleAssignment> results;
 
@@ -699,6 +768,14 @@ public class CommandRegistry {
                         .findByFilterParallel(AssignmentFilters.activeOnly());
                 case 5 -> results = system.getAssignmentManager()
                         .findByFilterParallel(AssignmentFilters.inactiveOnly());
+                case 6 -> {
+                    String username = ConsoleHelper.promptUsername(scanner, "Username");
+                    results = system.getAssignmentManager().findByFilterParallel(AssignmentFilters.assignedBy(username));
+                }
+                case 7 -> {
+                    String date = ConsoleHelper.promptDate(scanner, "Date");
+                    results = system.getAssignmentManager().findByFilterParallel(AssignmentFilters.assignedAfter(date));
+                }
                 default -> {
                     ConsoleHelper.printError("Invalid option");
                     return;
@@ -857,17 +934,13 @@ public class CommandRegistry {
 
             system.getExecutor().execute(() -> {
                 try {
-                    // Выполняем тяжелую работу (сбор данных)
                     String report = system.getReportGenerator().generateUserReport(
                             system.getUserManager(), system.getAssignmentManager());
 
-                    // Сохраняем в файл
                     system.getReportGenerator().exportToFile(report, filename);
 
-                    // Уведомляем пользователя поверх консоли
                     System.out.println("\n[BACKGROUND SUCCESS] Report successfully saved to: " + filename + "\n> ");
 
-                    // Логируем успешное действие асинхронно
                     system.getAuditLog().log("REPORT_ASYNC", "system", filename, "Background report generated");
                 } catch (Exception e) {
                     System.err.println("\n[BACKGROUND ERROR] Report generation failed: " + e.getMessage() + "\n> ");
@@ -882,18 +955,18 @@ public class CommandRegistry {
 
         // help
         parser.registerCommand("help", "Show available commands",
-                (scanner, system) -> parser.printHelp());
+                (_, _) -> parser.printHelp());
 
         // stats
         parser.registerCommand("stats", "Show system statistics",
-                (scanner, system) -> System.out.println(system.generateStatistics()));
+                (_, system) -> System.out.println(system.generateStatistics()));
 
         // clear
         parser.registerCommand("clear", "Clear screen",
-                (scanner, system) -> ConsoleHelper.clearScreen());
+                (_, _) -> ConsoleHelper.clearScreen());
 
         // exit
-        parser.registerCommand("exit", "Exit the application", (scanner, system) -> {
+        parser.registerCommand("exit", "Exit the application", (scanner, _) -> {
             if (ConsoleHelper.confirm(scanner, "Are you sure you want to exit?")) {
                 ConsoleHelper.printInfo("Goodbye!");
                 System.exit(0);
@@ -901,9 +974,8 @@ public class CommandRegistry {
         });
 
         // whoami
-        parser.registerCommand("whoami", "Show current user", (scanner, system) -> {
-            System.out.println("Current user: " + system.getCurrentUser());
-        });
+        parser.registerCommand("whoami", "Show current user", (_, system) ->
+            System.out.println("Current user: " + system.getCurrentUser()));
 
         // switch-user
         parser.registerCommand("switch-user", "Switch current user", (scanner, system) -> {
@@ -961,6 +1033,7 @@ public class CommandRegistry {
                         ConsoleHelper.printError("Failed to save: " + e.getMessage());
                     }
                 }
+                default -> ConsoleHelper.printError("Invalid option");
             }
         });
 
@@ -985,19 +1058,19 @@ public class CommandRegistry {
             return;
         }
 
-        System.out.printf("%n%-20s %-15s %-15s %-20s %s%n",
-                "TIMESTAMP", "ACTION", "PERFORMER", "TARGET", "DETAILS");
-        ConsoleHelper.printSeparator();
+        String[] headers = {"TIMESTAMP", "ACTION", "PERFORMER", "TARGET", "DETAILS"};
 
-        for (AuditEntry entry : entries) {
-            System.out.printf("%-20s %-15s %-15s %-20s %s%n",
-                    entry.timestamp(),
-                    entry.action(),
-                    entry.performer(),
-                    entry.target(),
-                    entry.details());
-        }
+        List<String[]> rows = entries.stream()
+                .map(entry -> new String[]{
+                        entry.timestamp(),
+                        entry.action(),
+                        entry.performer(),
+                        FormatUtils.truncate(entry.target(), 20),
+                        FormatUtils.truncate(entry.details(), 45)
+                })
+                .toList();
 
-        System.out.println("\nTotal: " + entries.size() + " entries");
+        System.out.println(FormatUtils.formatTable(headers, rows));
+        System.out.println("Total: " + entries.size() + " entries");
     }
 }

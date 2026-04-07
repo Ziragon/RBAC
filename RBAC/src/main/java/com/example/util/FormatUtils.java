@@ -65,13 +65,13 @@ public class FormatUtils {
         int boxWidth = maxLength + 4;
 
         StringBuilder sb = new StringBuilder();
-        sb.append("+").append("-".repeat(boxWidth - 2)).append("+").append("\n");
+        sb.append("+").repeat("-", boxWidth - 2).append("+").append("\n");
 
         for (String line : lines) {
             sb.append("| ").append(padRight(line, maxLength)).append(" |").append("\n");
         }
 
-        sb.append("+").append("-".repeat(boxWidth - 2)).append("+").append("\n");
+        sb.append("+").repeat("-", boxWidth - 2).append("+").append("\n");
 
         return sb.toString();
     }
@@ -109,11 +109,17 @@ public class FormatUtils {
         return " ".repeat(length - text.length()) + text;
     }
 
+    public static String abbreviate(String str, int maxLength) {
+        if (str == null) return "";
+        if (str.length() <= maxLength) return str;
+        return str.substring(0, maxLength - 1) + ".";
+    }
+
     // Горизонтальная граница таблицы
     private static String buildBorder(int[] widths) {
         StringBuilder sb = new StringBuilder("+");
         for (int width : widths) {
-            sb.append("-".repeat(width)).append("+");
+            sb.repeat("-", width).append("+");
         }
         return sb.toString();
     }

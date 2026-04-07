@@ -7,6 +7,7 @@ import com.example.entity.User;
 import com.example.repository.AssignmentManager;
 import com.example.repository.RoleManager;
 import com.example.repository.UserManager;
+import com.example.util.FormatUtils;
 
 import java.io.FileWriter;
 import java.io.IOException;
@@ -15,6 +16,9 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 public class ReportGenerator {
+
+    private static final String STATUS_ACTIVE = "ACTIVE";
+    private static final String STATUS_INACTIVE = "INACTIVE";
 
     public String generateUserReport(UserManager userManager, AssignmentManager assignmentManager) {
         List<User> users = userManager.findAll();
@@ -48,7 +52,7 @@ public class ReportGenerator {
         StringBuilder sb = new StringBuilder();
         sb.append(String.format("Total roles: %d%n%n", roles.size()));
 
-        sb.append(String.format("%-20s %-12s %-12s %-15s%n", "ROLE", "USERS", "ACTIVE", "PERMISSIONS"));
+        sb.append(String.format("%-20s %-12s %-12s %-15s%n", "ROLE", "USERS", STATUS_ACTIVE, "PERMISSIONS"));
         sb.repeat("-",60).append("\n");
 
         roles.forEach(role -> {
@@ -75,12 +79,13 @@ public class ReportGenerator {
         int userColWidth = 15;
         int permColWidth = 8;
 
-        // Формирование заголовка (Исправлено форматирование)
-        sb.append(String.format("%-" + userColWidth + "s", "USER"));
-        columns.forEach(col -> sb.append(String.format(" %-" + permColWidth + "s", abbreviate(col, permColWidth))));
+        sb.append(FormatUtils.padRight("USER", userColWidth));
+        columns.forEach(col ->
+                sb.append(" ")
+                        .append(FormatUtils.padRight(FormatUtils.abbreviate(col, permColWidth), permColWidth))
+        );
         sb.append("\n").repeat("-",userColWidth + columns.size() * (permColWidth + 1)).append("\n");
 
-        // Параллельная генерация строк матрицы
         String matrixBody = users.parallelStream()
                 .map(user -> formatMatrixRow(user, columns, assignmentManager, userColWidth, permColWidth))
                 .collect(Collectors.joining("\n"));
@@ -93,13 +98,18 @@ public class ReportGenerator {
 
     private String formatMatrixRow(User user, List<String> columns, AssignmentManager am, int uWidth, int pWidth) {
         StringBuilder row = new StringBuilder();
-        row.append(String.format("%-" + uWidth + "s", truncate(user.username(), uWidth)));
+
+        String truncatedUsername = FormatUtils.truncate(user.username(), uWidth);
+        row.append(FormatUtils.padRight(truncatedUsername, uWidth));
 
         Set<Permission> userPerms = am.getUserPermissions(user);
         for (String col : columns) {
             String[] parts = col.split(":", 2);
             boolean has = userPerms.stream().anyMatch(p -> p.matches(parts[0], parts[1]));
-            row.append(String.format(" %-" + pWidth + "s", has ? "  +" : "  -"));
+
+            String sign = has ? "  +" : "  -";
+            row.append(" ")
+                    .append(FormatUtils.padRight(sign, pWidth));
         }
         return row.toString();
     }
@@ -127,7 +137,7 @@ public class ReportGenerator {
         sb.append("  Roles:\n");
         for (RoleAssignment a : assignments) {
             sb.append(String.format("    - %-20s [%-10s] %s%n",
-                    a.role().getName(), a.assignmentType(), a.isActive() ? "ACTIVE" : "INACTIVE"));
+                    a.role().getName(), a.assignmentType(), a.isActive() ? STATUS_ACTIVE : STATUS_INACTIVE));
         }
     }
 
@@ -158,7 +168,7 @@ public class ReportGenerator {
             sb.append("    (no users)\n");
         } else {
             assignments.forEach(a -> sb.append(String.format("    - %s [%s]%n",
-                    a.user().username(), a.isActive() ? "ACTIVE" : "INACTIVE")));
+                    a.user().username(), a.isActive() ? STATUS_ACTIVE : STATUS_INACTIVE)));
         }
         sb.append("\n");
     }
@@ -182,17 +192,5 @@ public class ReportGenerator {
         try (PrintWriter writer = new PrintWriter(new FileWriter(filename))) {
             writer.print(report);
         }
-    }
-
-    private String truncate(String str, int maxLength) {
-        if (str == null) return "";
-        if (str.length() <= maxLength) return str;
-        return str.substring(0, maxLength - 3) + "...";
-    }
-
-    private String abbreviate(String str, int maxLength) {
-        if (str == null) return "";
-        if (str.length() <= maxLength) return str;
-        return str.substring(0, maxLength - 1) + ".";
     }
 }

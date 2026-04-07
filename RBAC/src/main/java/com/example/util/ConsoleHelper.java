@@ -7,6 +7,8 @@ import java.util.Scanner;
 // Сделан, чтобы уменьшить кол-во кода в CommandRegistry
 public class ConsoleHelper {
 
+    private ConsoleHelper() {}
+
     // Запрос строки у пользователя
     private static String prompt(Scanner scanner, String message) {
         System.out.print(message + ": ");
@@ -30,7 +32,7 @@ public class ConsoleHelper {
                     return value;
                 }
                 System.out.println("Please enter a number between " + min + " and " + max);
-            } catch (NumberFormatException e) {
+            } catch (NumberFormatException _) {
                 System.out.println("Invalid number. Please try again.");
             }
         }
