@@ -84,6 +84,8 @@ public class RBACSystem {
     }
 
     public void initialize() {
+        Role.clearNameRegistry();
+
         createDefaultPermissionsAndRoles();
         createDefaultAdmin();
 
@@ -212,7 +214,6 @@ public class RBACSystem {
         roleManager.clear();
         userManager.clear();
         auditLog.clear();
-        Role.clearNameRegistry();
         currentUser = "system";
     }
 

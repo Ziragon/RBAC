@@ -10,8 +10,6 @@ import java.util.Scanner;
 public class Main {
     @SuppressWarnings("unused")
     static void main(String[] args) {
-        Role.clearNameRegistry();
-
         RBACSystem system = new RBACSystem();
         system.initialize();
 

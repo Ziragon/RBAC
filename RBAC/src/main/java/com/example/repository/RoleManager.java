@@ -36,6 +36,7 @@ public class RoleManager implements Repository<Role> {
             throw new IllegalStateException("Cannot remove role: it is currently assigned to users");
         }
 
+        Role.unregisterName(role.getName());
         rolesById.remove(role.getId());
         rolesByName.remove(role.getName());
         return true;
@@ -64,6 +65,7 @@ public class RoleManager implements Repository<Role> {
     public synchronized void clear() {
         rolesById.clear();
         rolesByName.clear();
+        Role.clearNameRegistry();
     }
 
     public boolean exists(String name) {
