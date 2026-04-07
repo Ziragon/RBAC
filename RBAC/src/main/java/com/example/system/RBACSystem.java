@@ -13,8 +13,11 @@ import com.example.repository.RoleManager;
 import com.example.repository.UserManager;
 
 import java.util.Set;
+import java.util.concurrent.TimeUnit;
 
 public class RBACSystem {
+
+    private static final int CLEANUP_PERIOD_SECONDS = 30;
 
     private final UserManager userManager;
     private final RoleManager roleManager;
@@ -34,6 +37,8 @@ public class RBACSystem {
         this.backgroundExecutor = new BackgroundExecutor();
         this.auditLog.startAsyncLogger(this.backgroundExecutor);
         this.currentUser = "system";
+
+        startMaintenanceTask();
     }
 
     public UserManager getUserManager() {
@@ -217,5 +222,27 @@ public class RBACSystem {
         System.out.println("Users: " + userManager.count());
         System.out.println("Roles: " + roleManager.count());
         System.out.println("Assignments: " + assignmentManager.count());
+    }
+
+    private void startMaintenanceTask() {
+        backgroundExecutor.scheduleTask(() -> {
+            try {
+                int cleanedCount = assignmentManager.revokeExpiredAssignments();
+
+                int users = userManager.count();
+                int roles = roleManager.count();
+                int activeAssignments = assignmentManager.count();
+
+                String statsReport = String.format(
+                        "Cleanup: %d expired removed. System Stats: [Users: %d, Roles: %d, Assignments: %d]",
+                        cleanedCount, users, roles, activeAssignments
+                );
+
+                auditLog.log("SYSTEM_MAINTENANCE", "system", "all", statsReport);
+
+            } catch (Exception e) {
+                System.err.println("[MAINTENANCE ERROR] " + e.getMessage());
+            }
+        }, 5, CLEANUP_PERIOD_SECONDS, TimeUnit.SECONDS);
     }
 }

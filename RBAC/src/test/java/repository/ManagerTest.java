@@ -10,6 +10,7 @@ import com.example.filters.UserFilters;
 import com.example.repository.AssignmentManager;
 import com.example.repository.RoleManager;
 import com.example.repository.UserManager;
+import com.example.util.DateUtils;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -227,7 +228,6 @@ class ManagerTest {
         private AssignmentManager assignmentManager;
         private User user;
         private Role role;
-        private Role otherRole;
         private AssignmentMetadata meta;
 
         @BeforeEach
@@ -236,7 +236,6 @@ class ManagerTest {
             user = new User("testuser", "Test User", "test@test.com");
             Permission perm = new Permission("DELETE", "users", "Delete users");
             role = Role.create(uniqueName("TestRole"), "Test", Set.of(perm));
-            otherRole = Role.create(uniqueName("OtherRole"), "Test", Set.of(perm));
             meta = AssignmentMetadata.now("admin", "Test assignment");
         }
 
@@ -321,19 +320,20 @@ class ManagerTest {
         }
 
         @Test
-        @DisplayName("Should remove only expired temporary assignments")
-        void shouldCleanupOnlyExpired() {
-            assignmentManager.add(new PermanentAssignment(user, role, meta));
+        @DisplayName("Should revoke only expired temporary assignments")
+        void shouldRevokeOnlyExpired() {
+            TemporaryAssignment expired = new TemporaryAssignment(user, role, meta, "2000-01-01 00:00", false);
 
-            TemporaryAssignment expired = new TemporaryAssignment(user, otherRole, meta, "2000-01-01 00:00", false);
+            Role otherRole = Role.create(uniqueName("TestRole"), "Test", Set.of());
+            TemporaryAssignment nonExpired = new TemporaryAssignment(user, otherRole, meta,
+                    DateUtils.addDays(DateUtils.getCurrentDateTimeShort(), 1), false);
+
             assignmentManager.add(expired);
+            assignmentManager.add(nonExpired);
 
-            int removed = assignmentManager.cleanupExpiredAssignments();
+            int revoked = assignmentManager.revokeExpiredAssignments();
 
-            assertAll(
-                    () -> assertEquals(1, removed, "One assignment should be removed"),
-                    () -> assertEquals(1, assignmentManager.count(), "Only permanent assignment should remain")
-            );
+            assertEquals(1, revoked, "One assignment should be revoked");
         }
     }
 }

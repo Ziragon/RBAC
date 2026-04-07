@@ -131,18 +131,21 @@ public class AssignmentManager implements Repository<RoleAssignment> {
                 .anyMatch(a -> a.role().equals(role));
     }
 
-    public int cleanupExpiredAssignments() {
-        List<String> expiredIds = assignments.values().stream()
-                .filter(a -> a instanceof TemporaryAssignment temp && temp.isExpired())
-                .map(RoleAssignment::assignmentId)
+    public int revokeExpiredAssignments() {
+        // Только те Assignment, которые неактивны и не помечены revoked
+        List<TemporaryAssignment> toRevoke = assignments.values().stream()
+                .filter(a -> a instanceof TemporaryAssignment temp
+                        && !temp.isRevoked()
+                        && temp.isExpired())
+                .map(a -> (TemporaryAssignment) a)
                 .toList();
 
-        int removedCount = 0;
-        for (String id : expiredIds) {
-            if (assignments.remove(id) != null) {
-                removedCount++;
-            }
+        int deactivatedCount = 0;
+        for (TemporaryAssignment temp : toRevoke) {
+            temp.revoke();
+            deactivatedCount++;
         }
-        return removedCount;
+
+        return deactivatedCount;
     }
 }
