@@ -21,6 +21,7 @@ public class RBACSystem {
     private final AssignmentManager assignmentManager;
     private final AuditLog auditLog;
     private final ReportGenerator reportGenerator;
+    private final BackgroundExecutor backgroundExecutor;
 
     private String currentUser;
 
@@ -30,6 +31,8 @@ public class RBACSystem {
         this.userManager = new UserManager();
         this.auditLog = new AuditLog();
         this.reportGenerator = new ReportGenerator();
+        this.backgroundExecutor = new BackgroundExecutor();
+        this.auditLog.startAsyncLogger(this.backgroundExecutor);
         this.currentUser = "system";
     }
 
@@ -51,6 +54,10 @@ public class RBACSystem {
 
     public ReportGenerator getReportGenerator() {
         return reportGenerator;
+    }
+
+    public BackgroundExecutor getExecutor() {
+        return backgroundExecutor;
     }
 
     public String getCurrentUser() {

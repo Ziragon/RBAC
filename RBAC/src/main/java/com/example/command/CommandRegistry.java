@@ -850,6 +850,30 @@ public class CommandRegistry {
                 }
             }
         });
+
+        parser.registerCommand("report-users-async", "Generate user report in background", (scanner, system) -> {
+            String filename = ConsoleHelper.promptString(scanner, "Filename to save report", true);
+            ConsoleHelper.printInfo("Task submitted: Generating report in background. You can continue working.");
+
+            system.getExecutor().execute(() -> {
+                try {
+                    // Выполняем тяжелую работу (сбор данных)
+                    String report = system.getReportGenerator().generateUserReport(
+                            system.getUserManager(), system.getAssignmentManager());
+
+                    // Сохраняем в файл
+                    system.getReportGenerator().exportToFile(report, filename);
+
+                    // Уведомляем пользователя поверх консоли
+                    System.out.println("\n[BACKGROUND SUCCESS] Report successfully saved to: " + filename + "\n> ");
+
+                    // Логируем успешное действие асинхронно
+                    system.getAuditLog().log("REPORT_ASYNC", "system", filename, "Background report generated");
+                } catch (Exception e) {
+                    System.err.println("\n[BACKGROUND ERROR] Report generation failed: " + e.getMessage() + "\n> ");
+                }
+            });
+        });
     }
 
     // -- System commands --
@@ -938,6 +962,20 @@ public class CommandRegistry {
                     }
                 }
             }
+        });
+
+        parser.registerCommand("save-async", "Save audit log to file in background", (scanner, system) -> {
+            String filename = ConsoleHelper.promptString(scanner, "Filename to save audit log", true);
+            ConsoleHelper.printInfo("Task submitted: Saving audit log in background...");
+
+            system.getExecutor().execute(() -> {
+                try {
+                    system.getAuditLog().saveToFile(filename);
+                    System.out.println("\n[BACKGROUND SUCCESS] Audit log saved to: " + filename + "\n> ");
+                } catch (Exception e) {
+                    System.err.println("\n[BACKGROUND ERROR] Failed to save audit log: " + e.getMessage() + "\n> ");
+                }
+            });
         });
     }
 

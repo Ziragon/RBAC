@@ -1,5 +1,6 @@
 package com.example.audit;
 
+import com.example.system.BackgroundExecutor;
 import com.example.util.DateUtils;
 
 import java.io.FileWriter;
@@ -7,19 +8,44 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 public class AuditLog {
 
     private final List<AuditEntry> entries;
 
+    private final BlockingQueue<AuditEntry> logQueue;
+
     public AuditLog() {
         this.entries = new ArrayList<>();
+        this.logQueue = new LinkedBlockingQueue<>();
+    }
+
+    public void startAsyncLogger(BackgroundExecutor executor) {
+        executor.execute(() -> {
+            try {
+                while (!Thread.currentThread().isInterrupted()) {
+                    AuditEntry entry = logQueue.take();
+                    entries.add(entry);
+                }
+            } catch (InterruptedException _) {
+                Thread.currentThread().interrupt();
+                System.err.println("Async logger interrupted.");
+            }
+        });
     }
 
     public void log(String action, String performer, String target, String details) {
         String timestamp = DateUtils.getCurrentDateTime();
-        entries.add(new AuditEntry(timestamp, action, performer, target, details));
+        AuditEntry entry = new AuditEntry(timestamp, action, performer, target, details);
+
+        boolean accepted = logQueue.offer(entry);
+
+        if (!accepted) {
+            System.err.printf("[AUDIT LOSS] Queue full! %s: %s by %s on %s%n",
+                    timestamp, action, performer, target);
+        }
     }
 
     public List<AuditEntry> getAll() {
@@ -29,19 +55,19 @@ public class AuditLog {
     public List<AuditEntry> getByPerformer(String performer) {
         return entries.stream()
                 .filter(e -> e.performer().equalsIgnoreCase(performer))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<AuditEntry> getByAction(String action) {
         return entries.stream()
                 .filter(e -> e.action().equalsIgnoreCase(action))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<AuditEntry> getByTarget(String target) {
         return entries.stream()
                 .filter(e -> e.target().equalsIgnoreCase(target))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     public List<AuditEntry> getRecent(int count) {
