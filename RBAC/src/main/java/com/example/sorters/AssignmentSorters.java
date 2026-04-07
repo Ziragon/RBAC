@@ -4,6 +4,8 @@ import com.example.assignment.RoleAssignment;
 import java.util.Comparator;
 
 public class AssignmentSorters {
+    private AssignmentSorters() {}
+
     public static Comparator<RoleAssignment> byUsername() {
         return Comparator.comparing(a -> a.user().username());
     }

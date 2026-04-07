@@ -11,6 +11,9 @@ import com.example.entity.User;
 import com.example.filters.AssignmentFilters;
 import com.example.filters.RoleFilters;
 import com.example.filters.UserFilters;
+import com.example.sorters.AssignmentSorters;
+import com.example.sorters.RoleSorters;
+import com.example.sorters.UserSorters;
 import com.example.util.ConsoleHelper;
 import com.example.util.FormatUtils;
 
@@ -47,7 +50,7 @@ public class CommandRegistry {
             ConsoleHelper.printHeader("User List");
             List<User> users = system.getUserManager().findAll(
                     _ -> true,
-                    Comparator.comparing(User::username)
+                    UserSorters.byUsername()
             );
 
             if (users.isEmpty()) {
@@ -206,6 +209,7 @@ public class CommandRegistry {
             if (results.isEmpty()) {
                 ConsoleHelper.printInfo("No users found.");
             } else {
+                results.sort(UserSorters.byUsername());
                 System.out.println("\nFound " + results.size() + " user(s):");
                 results.forEach(u -> System.out.println("  - " + u.format()));
             }
@@ -221,7 +225,7 @@ public class CommandRegistry {
             ConsoleHelper.printHeader("Role List");
             List<Role> roles = system.getRoleManager().findAll(
                     _ -> true,
-                    Comparator.comparing(Role::getName)
+                    RoleSorters.byName()
             );
 
             if (roles.isEmpty()) {
@@ -420,6 +424,7 @@ public class CommandRegistry {
             if (results.isEmpty()) {
                 ConsoleHelper.printInfo("No roles found.");
             } else {
+                results.sort(RoleSorters.byName());
                 System.out.println("\nFound " + results.size() + " role(s):");
                 results.forEach(r -> System.out.println("  - " + r.getName() +
                         " (" + r.getPermissions().size() + " permissions)"));
@@ -522,8 +527,7 @@ public class CommandRegistry {
 
             List<RoleAssignment> assignments = system.getAssignmentManager().findAll(
                     _ -> true,
-                    Comparator.comparing((RoleAssignment a) -> a.user().username())
-                            .thenComparing(a -> a.role().getName())
+                    AssignmentSorters.byUsername().thenComparing(AssignmentSorters.byRoleName())
             );
 
             if (assignments.isEmpty()) {
@@ -609,9 +613,11 @@ public class CommandRegistry {
                 return;
             }
 
+            active.sort(AssignmentSorters.byUsername().thenComparing(AssignmentSorters.byRoleName()));
+
             for (RoleAssignment a : active) {
-                System.out.printf("  - %s -> %s [%s]%n",
-                        a.user().username(), a.role().getName(), a.assignmentType());
+                String paddedUsername = FormatUtils.padRight(a.user().username(), 15);
+                System.out.println("  - " + paddedUsername + " -> " + a.role().getName() + " [" + a.assignmentType() + "]");
             }
 
             System.out.println("\nTotal: " + active.size() + " active assignment(s)");
@@ -1046,19 +1052,19 @@ public class CommandRegistry {
             return;
         }
 
-        System.out.printf("%n%-20s %-15s %-15s %-20s %s%n",
-                "TIMESTAMP", "ACTION", "PERFORMER", "TARGET", "DETAILS");
-        ConsoleHelper.printSeparator();
+        String[] headers = {"TIMESTAMP", "ACTION", "PERFORMER", "TARGET", "DETAILS"};
 
-        for (AuditEntry entry : entries) {
-            System.out.printf("%-20s %-15s %-15s %-20s %s%n",
-                    entry.timestamp(),
-                    entry.action(),
-                    entry.performer(),
-                    entry.target(),
-                    entry.details());
-        }
+        List<String[]> rows = entries.stream()
+                .map(entry -> new String[]{
+                        entry.timestamp(),
+                        entry.action(),
+                        entry.performer(),
+                        FormatUtils.truncate(entry.target(), 20),
+                        FormatUtils.truncate(entry.details(), 45)
+                })
+                .toList();
 
-        System.out.println("\nTotal: " + entries.size() + " entries");
+        System.out.println(FormatUtils.formatTable(headers, rows));
+        System.out.println("Total: " + entries.size() + " entries");
     }
 }

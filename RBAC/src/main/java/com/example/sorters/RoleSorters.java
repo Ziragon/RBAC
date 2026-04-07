@@ -4,6 +4,8 @@ import com.example.entity.Role;
 import java.util.Comparator;
 
 public class RoleSorters {
+    private RoleSorters() {}
+
     public static Comparator<Role> byName() {
         return Comparator.comparing(Role::getName);
     }

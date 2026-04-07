@@ -79,7 +79,6 @@ public class ReportGenerator {
         int userColWidth = 15;
         int permColWidth = 8;
 
-        // Формирование заголовка (Исправлено форматирование)
         sb.append(FormatUtils.padRight("USER", userColWidth));
         columns.forEach(col ->
                 sb.append(" ")
@@ -87,7 +86,6 @@ public class ReportGenerator {
         );
         sb.append("\n").repeat("-",userColWidth + columns.size() * (permColWidth + 1)).append("\n");
 
-        // Параллельная генерация строк матрицы
         String matrixBody = users.parallelStream()
                 .map(user -> formatMatrixRow(user, columns, assignmentManager, userColWidth, permColWidth))
                 .collect(Collectors.joining("\n"));
