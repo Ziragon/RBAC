@@ -10,7 +10,6 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
 
     private volatile String expiresAt;
     private volatile boolean autoRenew;
-    private volatile boolean revoked = false;
 
     public TemporaryAssignment(User user, Role role, AssignmentMetadata metadata,
                                String expiresAt, boolean autoRenew) {
@@ -31,16 +30,6 @@ public class TemporaryAssignment extends AbstractRoleAssignment {
     @Override
     public boolean isActive() {
         return !isExpired() && !isRevoked();
-    }
-
-    @Override
-    public void revoke() {
-        this.revoked = true;
-    }
-
-    @Override
-    public boolean isRevoked() {
-        return revoked;
     }
 
     @Override
